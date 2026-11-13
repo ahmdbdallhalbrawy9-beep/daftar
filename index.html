@@ -7,6 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.webmanifest">
+<script src="firebase-config.js"></script>
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>دفتر المحفظة</title>
@@ -83,6 +84,9 @@ button{font:inherit;cursor:pointer;border:0;color:var(--fg)}
 .small{font-size:12.5px;color:var(--muted)}
 .ph{font-weight:500;font-size:14px;color:var(--muted);direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
 .cashwarn{background:var(--bad-soft);color:var(--bad);font-weight:600;border-radius:8px;padding:8px 10px;margin-top:4px;font-size:14px}
+#auth{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;display:flex;align-items:center;justify-content:center;padding:16px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+#auth .box{width:100%;max-width:400px;display:flex;flex-direction:column;gap:12px}
+#auth h1{font-size:26px}
 .bar{height:6px;border-radius:9px;background:var(--line);overflow:hidden}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:9px}
 .bar i.hi{background:var(--warn)}.bar i.full{background:var(--bad)}
@@ -246,6 +250,11 @@ nav button.on{background:var(--accent-soft);color:var(--accent)}
           </div></details>
       </div>
     </div>
+    <div class="card" id="acctCard" hidden>
+      <b>الحساب</b>
+      <p class="small" id="acctEmail"></p>
+      <button class="ghost" id="logoutBtn">تسجيل الخروج</button>
+    </div>
     <div class="card" id="installCard" hidden>
       <b>تثبيت التطبيق</b>
       <p class="small">ثبّته على الشاشة الرئيسية عشان يفتح زي أي تطبيق ويشتغل من غير نت.</p>
@@ -273,6 +282,20 @@ nav button.on{background:var(--accent-soft);color:var(--accent)}
   <button data-t="day">اليوم</button>
   <button data-t="set">إعدادات</button>
 </div></nav>
+<div id="auth" hidden><div class="box">
+  <h1>دفتر المحفظة</h1>
+  <p class="sub">سجّل دخول بحسابك عشان بياناتك تظهر على أي موبايل. محتاج نت أول مرة بس، وبعدها يشتغل بدون نت.</p>
+  <div class="card">
+    <label for="aEmail">الإيميل</label>
+    <input id="aEmail" type="email" inputmode="email" autocomplete="username" dir="ltr">
+    <label for="aPass">كلمة السر</label>
+    <input id="aPass" type="password" autocomplete="current-password" dir="ltr">
+    <div id="authMsg" class="notice" hidden></div>
+    <button class="primary" id="loginBtn">دخول</button>
+    <button class="ghost" id="signupBtn">إنشاء حساب جديد</button>
+    <button class="more" id="resetBtn" style="padding:4px">نسيت كلمة السر؟</button>
+  </div>
+</div></div>
 <div id="toastBox"></div>
 <div id="sheetBox"></div>
 
@@ -315,9 +338,9 @@ function makeLocalDB(){
 
 /* ---------- state ---------- */
 var DEFAULTS={feePct:1,feePctI:1,feePctC:1,feePctF:0.6,vfSame:1,vfOP:0.5,vfOC:15,inP:0.1,inC:20,baseCash:0,baseTs:0,defDay:60000,defMon:200000};
-var S={wallets:[],settings:Object.assign({},DEFAULTS),ledger:{},closes:[],ready:{},mode:'local',live:false,waited:false};
+var S={meta:{},raw:{},seen:{},synced:true,wallets:[],settings:Object.assign({},DEFAULTS),ledger:{},closes:[],ready:{},mode:'local',live:false,waited:false};
 var UI={dest:'vf',costManual:false,flt:'all',kind:'out',sel:null,manualSel:false,feeManual:false,pct:null,showAll:false,tab:'tx',setupDone:false,invKey:''};
-var db=null,Q=Promise.resolve();
+var db=null,Q=Promise.resolve(),FS=null,USER=null,UNS=[];
 var col=function(n){return db.collection(n)};
 var queue=function(fn){Q=Q.then(fn).catch(function(e){toast('تعذّر الحفظ: '+((e&&e.message)||(e&&e.code)||'خطأ'),true)});return Q};
 
@@ -379,7 +402,7 @@ function rank(kind,a,C,cst){
 }
 
 /* ---------- writes ---------- */
-function writable(){return !!(S.ready.ledger&&S.ready.wallets&&S.ready.settings)}
+function writable(){return !!(S.ready.ledger&&S.ready.wallets&&S.ready.settings&&S.synced)}
 function addTx(rec){
   var day=dayKey(rec.ts),id=day+'_'+DEV;
   var arr=(S.ledger[id]||[]).concat([rec]);
@@ -402,9 +425,7 @@ function changed(){if(raf)return;raf=requestAnimationFrame(function(){raf=0;rend
 function renderAll(){
   var C=compute();
   var pill=$('#syncPill');
-  if(S.mode==='local'){pill.className='pill';pill.textContent='شغّال بدون نت'}
-  else if(S.live){pill.className='pill';pill.textContent='متزامن'}
-  else{pill.className='pill warn';pill.textContent='جارٍ الاتصال…'}
+  setPill(pill);
   $('#dateLine').textContent=new Date().toLocaleDateString('ar-EG-u-nu-latn',{timeZone:'Africa/Cairo',weekday:'long',day:'numeric',month:'long'});
   renderTx(C);renderWallets(C);renderDay(C);renderSet();
 }
@@ -433,7 +454,7 @@ function renderTx(C){
 
   // setup card
   var su=$('#setup');
-  if(S.ready.wallets&&!S.wallets.length){
+  if(S.ready.wallets&&S.synced&&!S.wallets.length){
     if(!UI.setupDone){UI.setupDone=true;su.innerHTML=setupHTML()}
   }else{su.innerHTML='';UI.setupDone=false}
 
@@ -555,7 +576,11 @@ function renderSet(){
   }
   $('#pwSetBox').hidden=!!S.settings.pwHash;$('#pwUseBox').hidden=!S.settings.pwHash;
   $('#devId').textContent=DEV;
-  $('#syncInfo').textContent='الدفتر محفوظ على الموبايل ده بس، وبيشتغل من غير نت. لو غيّرت الموبايل أو مسحت بيانات المتصفح، البيانات بتضيع من غير نسخة احتياطية. خد نسخة كل فترة.';
+  $('#acctCard').hidden=S.mode!=='cloud';
+  if(USER)$('#acctEmail').textContent=USER.email||'';
+  $('#syncInfo').textContent=S.mode==='cloud'
+    ?'بياناتك بتتحفظ على الموبايل وبتترفع لحسابك لما النت يشتغل. أي موبايل تسجّل دخول بيه بنفس الحساب بيشوف نفس الدفتر. لو عملت عمليات بدون نت، هتترفع أوتوماتيك أول ما النت يرجع.'
+    :'الدفتر محفوظ على الموبايل ده بس، وبيشتغل من غير نت. لو غيّرت الموبايل أو مسحت بيانات المتصفح، البيانات بتضيع من غير نسخة احتياطية.';
   var bk=0;try{bk=+localStorage.getItem('dw_bk')||0}catch(e){}
   $('#bkInfo').textContent=bk?'آخر نسخة احتياطية: '+new Date(bk).toLocaleDateString('ar-EG-u-nu-latn',{timeZone:'Africa/Cairo',day:'numeric',month:'long'}):'لسه ما أخدتش نسخة احتياطية.';
 }
@@ -698,7 +723,11 @@ document.addEventListener('click',function(e){
   if(t.id==='closeBtn')return doClose();
   if(t.id==='wipeBtn')return doWipe();
   if(t.id==='bkExport')return bkExport();
-  if(t.id==='bkConfirm'){if(UI.pendingImport){db.__load(UI.pendingImport);UI.pendingImport=null;UI.invKey='';t.hidden=true;toast('اتسترجعت البيانات')}return}
+  if(t.id==='bkConfirm'){if(UI.pendingImport){var imp=UI.pendingImport;UI.pendingImport=null;t.hidden=true;queue(function(){return restoreData(imp)}).then(function(){UI.invKey='';toast('اتسترجعت البيانات')})}return}
+  if(t.id==='logoutBtn')return doLogout();
+  if(t.id==='loginBtn')return authGo('login');
+  if(t.id==='signupBtn')return authGo('signup');
+  if(t.id==='resetBtn')return authReset();
   if(t.id==='installBtn'){if(UI.inst){UI.inst.prompt();UI.inst=null}return}
   if(t.id==='saveRates'){var g=function(id,d){var v=$(id).value.trim();return v===''?d:Math.max(0,NUM(v))};saveSettings({vfSame:g('#setVfS',1),vfOP:g('#setVfOP',0.5),vfOC:g('#setVfOC',15),inP:g('#setInP',0.1),inC:g('#setInC',20)});toast('تم حفظ الرسوم');return}
   if(t.id==='pwSet')return pwSet();
@@ -718,7 +747,7 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden)chan
 
 /* ---------- backup ---------- */
 function bkExport(){
-  var blob=new Blob([JSON.stringify({app:'daftar-mahfaza',v:1,ts:Date.now(),data:db.__dump()})],{type:'application/json'});
+  var blob=new Blob([JSON.stringify({app:'daftar-mahfaza',v:1,ts:Date.now(),data:dumpState()})],{type:'application/json'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='daftar-'+dayKey(Date.now())+'.json';document.body.appendChild(a);a.click();a.remove();
   setTimeout(function(){URL.revokeObjectURL(a.href)},4000);
   try{localStorage.setItem('dw_bk',String(Date.now()))}catch(e){}
@@ -736,25 +765,119 @@ $('#bkFile').addEventListener('change',function(e){
 });
 
 /* ---------- boot ---------- */
+function dumpState(){var o={};Object.keys(S.raw).forEach(function(c){Object.keys(S.raw[c]).forEach(function(id){o[c+'/'+id]=S.raw[c][id]})});return o}
+function restoreData(o){
+  var cur=dumpState(),p=Promise.resolve();
+  Object.keys(cur).forEach(function(k){var i=k.indexOf('/');p=p.then(function(){return col(k.slice(0,i)).doc(k.slice(i+1)).delete()})});
+  Object.keys(o).forEach(function(k){if(!/^(wallets|ledger|closes|settings)\//.test(k))return;var i=k.indexOf('/');p=p.then(function(){return col(k.slice(0,i)).doc(k.slice(i+1)).set(o[k])})});
+  return p;
+}
+function resetState(){S.wallets=[];S.settings=Object.assign({},DEFAULTS);S.ledger={};S.closes=[];S.ready={};S.meta={};S.raw={};S.seen={};S.waited=false;UI.invKey='';UI.setupDone=false}
+function stop(){UNS.forEach(function(f){try{f()}catch(e){}});UNS=[]}
+function setPill(pill){
+  if(S.mode!=='cloud'){pill.className='pill';pill.textContent='شغّال بدون نت';return}
+  var fc=false,hp=false;Object.keys(S.meta).forEach(function(k){fc=fc||S.meta[k].fc;hp=hp||S.meta[k].hp});
+  if(navigator.onLine===false){pill.className='pill warn';pill.textContent=hp?'بدون نت · هيترفع بعدين':'بدون نت · محفوظ'}
+  else if(hp){pill.className='pill warn';pill.textContent='جارٍ الرفع…'}
+  else if(fc){pill.className='pill warn';pill.textContent='جارٍ الاتصال…'}
+  else{pill.className='pill';pill.textContent='متزامن'}
+}
 function start(){
-  S.mode=db&&db.__local?'local':'shared';
+  stop();
   var fail=function(e){S.err=e&&e.code;S.waited=true;changed()};
-  var mark=function(n,cb){return function(snap){cb(snap);S.ready[n]=true;if(S.mode==='shared'&&!(snap.metadata&&snap.metadata.fromCache))S.live=true;changed()}};
-  col('wallets').onSnapshot(mark('wallets',function(snap){S.wallets=snap.docs.map(function(d){return Object.assign({id:d.id},d.data())}).sort(function(a,b){return (a.order||0)-(b.order||0)})}),fail);
-  col('ledger').onSnapshot(mark('ledger',function(snap){var m={};snap.docs.forEach(function(d){m[d.id]=(d.data()||{}).txs||[]});S.ledger=m}),fail);
-  col('settings').onSnapshot(mark('settings',function(snap){var d=snap.docs.filter(function(x){return x.id==='main'})[0];S.settings=Object.assign({},DEFAULTS,d?d.data():{})}),fail);
-  col('closes').onSnapshot(mark('closes',function(snap){S.closes=snap.docs.map(function(d){return Object.assign({id:d.id},d.data())})}),fail);
+  var mark=function(n,cb){return function(snap){
+    cb(snap);S.ready[n]=true;
+    var md=snap.metadata||{};S.meta[n]={fc:!!md.fromCache,hp:!!md.hasPendingWrites};
+    S.raw[n]={};snap.docs.forEach(function(d){S.raw[n][d.id]=d.data()});
+    if(S.mode==='cloud'&&!md.fromCache){S.seen[n]=1;if(S.seen.wallets&&S.seen.ledger&&S.seen.settings&&S.seen.closes&&!S.synced){S.synced=true;try{localStorage.setItem('dw_sync_'+USER.uid,'1')}catch(e){}}}
+    changed()}};
+  UNS.push(col('wallets').onSnapshot(mark('wallets',function(snap){S.wallets=snap.docs.map(function(d){return Object.assign({id:d.id},d.data())}).sort(function(a,b){return (a.order||0)-(b.order||0)})}),fail));
+  UNS.push(col('ledger').onSnapshot(mark('ledger',function(snap){var m={};snap.docs.forEach(function(d){m[d.id]=(d.data()||{}).txs||[]});S.ledger=m}),fail));
+  UNS.push(col('settings').onSnapshot(mark('settings',function(snap){var d=snap.docs.filter(function(x){return x.id==='main'})[0];S.settings=Object.assign({},DEFAULTS,d?d.data():{})}),fail));
+  UNS.push(col('closes').onSnapshot(mark('closes',function(snap){S.closes=snap.docs.map(function(d){return Object.assign({id:d.id},d.data())})}),fail));
   setTimeout(function(){if(!writable()){S.waited=true;changed()}},10000);
   changed();
 }
+
+/* ---------- cloud account (Firebase) ---------- */
+function makeFsDB(fs,uid){
+  var base=fs.collection('users').doc(uid);
+  var fsErr=function(e){toast('تعذّر الحفظ في الحساب: '+((e&&e.code)||'خطأ'),true)};
+  return {collection:function(c){var cr=base.collection(c);return {
+    doc:function(id){var d=cr.doc(id);return {id:id,path:c+'/'+id,
+      get:function(){return d.get()},
+      set:function(x){d.set(x).catch(fsErr);return Promise.resolve()},
+      update:function(x){d.update(x).catch(fsErr);return Promise.resolve()},
+      delete:function(){d.delete().catch(fsErr);return Promise.resolve()}}},
+    onSnapshot:function(next,err){return cr.onSnapshot({includeMetadataChanges:true},function(sn){next({docs:sn.docs,size:sn.size,empty:sn.empty,metadata:sn.metadata})},err)}}}};
+}
+function loadScripts(urls){
+  return urls.reduce(function(p,u){return p.then(function(){return new Promise(function(res,rej){var el=document.createElement('script');el.src=u;el.onload=res;el.onerror=function(){rej(new Error('load '+u))};document.head.appendChild(el)})})},Promise.resolve());
+}
+var FB='https://www.gstatic.com/firebasejs/10.12.2/';
+function showAuth(msg,bad){
+  $('#auth').hidden=false;
+  var m=$('#authMsg');m.textContent=msg||'';m.className='notice'+(bad?' bad':'');m.hidden=!msg;
+}
+function authErr(e){
+  var c=(e&&e.code)||'';
+  if(/invalid-credential|wrong-password|user-not-found|invalid-login/.test(c))return 'الإيميل أو كلمة السر غلط';
+  if(c==='auth/email-already-in-use')return 'الإيميل ده عليه حساب بالفعل. اضغط دخول';
+  if(c==='auth/weak-password')return 'كلمة السر ضعيفة، اكتب 6 حروف على الأقل';
+  if(c==='auth/invalid-email')return 'الإيميل مش مكتوب صح';
+  if(c==='auth/network-request-failed')return 'مفيش نت. محتاج نت عشان تسجّل دخول';
+  if(c==='auth/too-many-requests')return 'محاولات كتير. استنى شوية وجرّب تاني';
+  return 'حصل خطأ ('+(c||'؟')+')';
+}
+function authGo(mode){
+  var e=$('#aEmail').value.trim(),pw=$('#aPass').value;
+  if(!e||!pw){showAuth('اكتب الإيميل وكلمة السر',true);return}
+  var a=firebase.auth();
+  $('#loginBtn').disabled=$('#signupBtn').disabled=true;showAuth('جارٍ التحميل…');
+  (mode==='signup'?a.createUserWithEmailAndPassword(e,pw):a.signInWithEmailAndPassword(e,pw))
+    .then(function(){$('#aPass').value=''})
+    .catch(function(x){showAuth(authErr(x),true)})
+    .then(function(){$('#loginBtn').disabled=$('#signupBtn').disabled=false});
+}
+function authReset(){
+  var e=$('#aEmail').value.trim();if(!e){showAuth('اكتب الإيميل الأول',true);return}
+  firebase.auth().sendPasswordResetEmail(e).then(function(){showAuth('بعتنالك رابط تغيير كلمة السر على الإيميل')}).catch(function(x){showAuth(authErr(x),true)});
+}
+function anyPending(){return Object.keys(S.meta).some(function(k){return S.meta[k].hp})}
+function doLogout(){
+  if(anyPending()){toast('فيه بيانات لسه ما اترفعتش. استنى لما النت يشتغل وتتزامن',true);return}
+  firebase.auth().signOut();
+}
+function initCloud(){
+  firebase.initializeApp(window.FIREBASE_CONFIG);
+  FS=firebase.firestore();
+  try{FS.enablePersistence({synchronizeTabs:true}).catch(function(){})}catch(e){}
+  firebase.auth().onAuthStateChanged(function(u){
+    if(u){
+      if(USER&&USER.uid===u.uid)return;
+      USER=u;$('#auth').hidden=true;stop();resetState();
+      db=makeFsDB(FS,u.uid);S.mode='cloud';
+      try{S.synced=localStorage.getItem('dw_sync_'+u.uid)==='1'}catch(e){S.synced=false}
+      start();
+    }else{
+      stop();USER=null;db=null;resetState();S.mode='cloud';S.synced=false;changed();showAuth('');
+    }
+  });
+}
 (async function(){
   renderAll();
-  db=makeLocalDB();db.__local=true;
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
-  try{if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js')}catch(e){}
+  try{if('serviceWorker' in navigator){var hadCtl=!!navigator.serviceWorker.controller;navigator.serviceWorker.register('sw.js');navigator.serviceWorker.addEventListener('controllerchange',function(){if(hadCtl&&!UI.reloaded){UI.reloaded=true;location.reload()}})}}catch(e){}
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();UI.inst=e;$('#installCard').hidden=false});
   window.addEventListener('appinstalled',function(){$('#installCard').hidden=true});
-  start();
+  window.addEventListener('online',changed);window.addEventListener('offline',changed);
+  var cfg=window.FIREBASE_CONFIG;
+  if(cfg&&cfg.apiKey){
+    showAuth('جارٍ التحميل…');
+    loadScripts([FB+'firebase-app-compat.js',FB+'firebase-auth-compat.js',FB+'firebase-firestore-compat.js']).then(initCloud).catch(function(){showAuth('التطبيق محتاج نت أول مرة عشان يتحمّل. اتصل بالنت وافتحه تاني.',true)});
+  }else{
+    S.mode='local';db=makeLocalDB();db.__local=true;S.synced=true;start();
+  }
 })();
 })();
 </script>
