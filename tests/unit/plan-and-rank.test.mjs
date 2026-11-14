@@ -1,7 +1,9 @@
-'use strict';
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { loadApp } = require('../harness/loadApp.js');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { buildPlan } from '../../src/domain/plan.js';
+import { rank } from '../../src/domain/rank.js';
+import { compute } from '../../src/domain/compute.js';
+import { DEFAULTS } from '../../src/domain/money.js';
 
 function twoVfWallets() {
   return [
@@ -11,15 +13,12 @@ function twoVfWallets() {
 }
 
 test('buildPlan: splitting a transfer directly across several wallets', () => {
-  const app = loadApp();
-  app.S.wallets = twoVfWallets();
-  app.S.settings = Object.assign({}, app.DEFAULTS);
-  app.UI.kind = 'out';
-  app.UI.dest = 'vf';
-  app.UI.sm = 'direct';
-  app.UI.sp = { v1: '600', v2: '400' };
-  const C = app.compute();
-  const plan = app.buildPlan(C, 1000, 10);
+  const wallets = twoVfWallets();
+  const C = compute({ ledger: {}, wallets, settings: DEFAULTS, now: Date.now() });
+  const plan = buildPlan(
+    { kind: 'out', amount: 1000, fee: 10, splitMode: 'direct', splits: { v1: '600', v2: '400' }, dest: 'vf' },
+    wallets, C, DEFAULTS,
+  );
   assert.equal(plan.legs.length, 2);
   assert.equal(plan.sum, 1000);
   assert.equal(plan.ctot, 2, 'two legs, 1 flat fee each (vf-same-network)');
@@ -30,32 +29,25 @@ test('buildPlan: splitting a transfer directly across several wallets', () => {
 });
 
 test('buildPlan: direct split flags shortfall when a wallet cannot cover its share', () => {
-  const app = loadApp();
-  app.S.wallets = twoVfWallets();
-  app.S.settings = Object.assign({}, app.DEFAULTS);
-  app.UI.kind = 'out';
-  app.UI.dest = 'vf';
-  app.UI.sm = 'direct';
+  const wallets = twoVfWallets();
+  const C = compute({ ledger: {}, wallets, settings: DEFAULTS, now: Date.now() });
   // v2 only has 500: asking it to send 600 leaves it short
-  app.UI.sp = { v1: '400', v2: '600' };
-  const C = app.compute();
-  const plan = app.buildPlan(C, 1000, 10);
+  const plan = buildPlan(
+    { kind: 'out', amount: 1000, fee: 10, splitMode: 'direct', splits: { v1: '400', v2: '600' }, dest: 'vf' },
+    wallets, C, DEFAULTS,
+  );
   assert.equal(plan.bad.v2, 1);
   assert.equal(plan.short, true);
   assert.equal(plan.ok, false);
 });
 
 test('buildPlan: collect mode gathers from other wallets into the collector, then pays the customer', () => {
-  const app = loadApp();
-  app.S.wallets = twoVfWallets();
-  app.S.settings = Object.assign({}, app.DEFAULTS);
-  app.UI.kind = 'out';
-  app.UI.dest = 'vf';
-  app.UI.sm = 'collect';
-  app.UI.col = 'v1';
-  app.UI.sp = { v2: '300' };
-  const C = app.compute();
-  const plan = app.buildPlan(C, 800, 10);
+  const wallets = twoVfWallets();
+  const C = compute({ ledger: {}, wallets, settings: DEFAULTS, now: Date.now() });
+  const plan = buildPlan(
+    { kind: 'out', amount: 800, fee: 10, splitMode: 'collect', collectorId: 'v1', splits: { v2: '300' }, dest: 'vf' },
+    wallets, C, DEFAULTS,
+  );
   assert.equal(plan.coll, true);
   assert.equal(plan.sum, 300, 'collected from v2');
   assert.equal(plan.own, 500, '800 - 300 comes from the collector\'s own balance');
@@ -71,17 +63,14 @@ test('buildPlan: collect mode gathers from other wallets into the collector, the
 });
 
 test('rank: "out" ranks by remaining daily/monthly limit and flags insufficient balance', () => {
-  const app = loadApp();
-  app.S.wallets = [
+  const wallets = [
     { id: 'v1', name: 'ضيّقة', type: 'vf', base: 10000, baseTs: 0, dayLimit: 300, monthLimit: 200000, active: true },
     { id: 'v2', name: 'واسعة', type: 'vf', base: 10000, baseTs: 0, dayLimit: 60000, monthLimit: 200000, active: true },
     { id: 'v3', name: 'فقيرة', type: 'vf', base: 50, baseTs: 0, dayLimit: 60000, monthLimit: 200000, active: true },
   ];
-  app.S.settings = Object.assign({}, app.DEFAULTS);
-  app.setNow(Date.UTC(2026, 0, 15, 10, 0, 0));
-  app.S.ledger = {};
-  const C = app.compute();
-  const list = app.rank('out', 500, C, 1);
+  const now = Date.UTC(2026, 0, 15, 10, 0, 0);
+  const C = compute({ ledger: {}, wallets, settings: DEFAULTS, now });
+  const list = rank('out', 500, wallets, C, DEFAULTS, 1);
   const v1 = list.find((r) => r.w.id === 'v1');
   const v2 = list.find((r) => r.w.id === 'v2');
   const v3 = list.find((r) => r.w.id === 'v3');
@@ -93,16 +82,13 @@ test('rank: "out" ranks by remaining daily/monthly limit and flags insufficient 
 });
 
 test('rank: "cashout" ranks by balance and only checks balance, not limits', () => {
-  const app = loadApp();
-  app.S.wallets = [
+  const wallets = [
     { id: 'v1', name: 'كبيرة', type: 'vf', base: 5000, baseTs: 0, dayLimit: 100, monthLimit: 100, active: true },
     { id: 'v2', name: 'صغيرة', type: 'vf', base: 10, baseTs: 0, dayLimit: 60000, monthLimit: 200000, active: true },
   ];
-  app.S.settings = Object.assign({}, app.DEFAULTS);
-  app.S.ledger = {};
-  app.setNow(Date.UTC(2026, 0, 15, 10, 0, 0));
-  const C = app.compute();
-  const list = app.rank('cashout', 200, C, 0);
+  const now = Date.UTC(2026, 0, 15, 10, 0, 0);
+  const C = compute({ ledger: {}, wallets, settings: DEFAULTS, now });
+  const list = rank('cashout', 200, wallets, C, DEFAULTS, 0);
   const v1 = list.find((r) => r.w.id === 'v1');
   const v2 = list.find((r) => r.w.id === 'v2');
   assert.equal(v1.fits, true, 'tiny day/month limits do not matter for cashout');
