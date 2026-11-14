@@ -24,15 +24,15 @@ Goal: split the app (all of it currently in `index.html`) into clear layers, wit
 
 Branch for every phase in this track: `refactor/clean-arch` from `saeed-develop`.
 
-### Phase 1 — Safety net (tests before moving anything) 🔄
+### Phase 1 — Safety net (tests before moving anything) ✅
 
 Before moving a single line, lock in the current calculation behavior with golden-master tests, so every later move can be proven not to change results.
 
 - [x] Full inventory of `index.html`: every function, global state (`S`, `UI`, `DEFAULTS`…), Firestore paths, every ID and `data-*` hook the JS uses, every event listener. Save it as `docs/inventory.md`.
-- [ ] A harness in `tests/harness/` that loads the current functions as they are, **without editing `index.html`**.
-- [ ] `node --test` tests (no libraries) for: `compute`, `buildPlan`, `rank`, `walletCost`, `xferCost`, `maxAmt`, `cd`, `wd`, `splitWallets`, `parseSms`, `NUM`, `nrm`, `dayKey`, `dayStart`, `shiftDay`, and daily/monthly limit resets.
-- [ ] Realistic cases: Vodafone→Vodafone, Vodafone→other network with the cap, InstaPay with the cap, splitting an amount across several wallets, limits around midnight and the first of the month in Cairo time, input with Arabic-Indic digits (٠-٩).
-- [ ] One command runs everything: `node --test tests/`.
+- [x] A harness in `tests/harness/` that loads the current functions as they are, **without editing `index.html`**.
+- [x] `node --test` tests (no libraries) for: `compute`, `buildPlan`, `rank`, `walletCost`, `xferCost`, `maxAmt`, `cd`, `wd`, `splitWallets`, `parseSms`, `NUM`, `nrm`, `dayKey`, `dayStart`, `shiftDay`, and daily/monthly limit resets.
+- [x] Realistic cases: Vodafone→Vodafone, Vodafone→other network with the cap, InstaPay with the cap, splitting an amount across several wallets, limits around midnight and the first of the month in Cairo time, input with Arabic-Indic digits (٠-٩).
+- [x] One command runs everything: `node --test` (see note below — on this machine's Node v22.22.1, `node --test tests/` fails with `MODULE_NOT_FOUND` even outside this repo; bare `node --test` uses the same default recursive discovery and finds all 34 tests under `tests/`).
 
 **Done when:** all tests pass against the current code · `index.html` is untouched (`git diff index.html` is empty).
 
@@ -165,3 +165,4 @@ Not allowed: changing any calculation or data shape. Font: the system font stack
 | Date | Phase | Done / notes |
 |---|---|---|
 | 2026-11-15 | 0 — Setup | Added `AGENTS.md`, `CLAUDE.md`, the skills (`daftar-ui`, `daftar-ui-review`, `frontend-design`), the `/next` command, and this roadmap. |
+| 2026-11-15 | 1 — Safety net | Wrote `docs/inventory.md` (full function/state/Firestore/DOM map of `index.html`). Built a `vm`-sandboxed harness (`tests/harness/loadApp.js`) that loads `index.html`'s inline script unmodified and exports its internals for testing. Added 34 `node --test` cases across `tests/unit/*.test.js` covering `compute`, `buildPlan`, `rank`, `walletCost`, `xferCost`, `maxAmt`, `cd`, `wd`, `splitWallets`, `parseSms`, `NUM`, `nrm`, `dayKey`, `dayStart`, `shiftDay`, Cairo midnight/month-boundary limit resets, and Arabic-Indic digit input. All pass; `git diff index.html` is empty. Note: on this machine's Node v22.22.1, `node --test tests/` itself fails (`MODULE_NOT_FOUND`, reproduces even in an unrelated empty project) — bare `node --test` is the one command that works and finds all tests. |
