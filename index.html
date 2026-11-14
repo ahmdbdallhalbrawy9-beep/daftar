@@ -149,6 +149,7 @@ nav button.on{background:var(--accent-soft);color:var(--accent)}
     <div id="setup"></div>
     <div id="notice"></div>
     <div id="openBanner"></div>
+    <div id="pendBox"></div>
     <div class="seg" id="svcTx"></div>
     <div class="kinds" id="kinds">
       <button class="kind on" data-k="out" data-s="v"><b>تحويل</b><small>محافظ · الزبون بيدّيني كاش وأنا أحوّل</small></button>
@@ -251,6 +252,11 @@ nav button.on{background:var(--accent-soft);color:var(--accent)}
         <div><label for="setInC">حد أقصى للمعاملة (ج)</label><input id="setInC" inputmode="decimal"></div>
       </div>
       <button class="ghost" id="saveRates">حفظ الرسوم</button>
+    </div>
+    <div class="card" id="smsCard">
+      <b>قراءة رسائل فودافون كاش</b>
+      <p class="small" id="smsInfo"></p>
+      <button class="ghost" id="smsScan">فحص الرسائل الآن</button>
     </div>
     <div class="card">
       <b>مسح المعاملات</b>
@@ -369,8 +375,8 @@ function makeLocalDB(){
 
 /* ---------- state ---------- */
 var DEFAULTS={feePct:1,feePctI:1,feePctC:1,feePctF:0.6,vfSame:1,vfOP:0.5,vfOC:15,inP:0.1,inC:20,baseCash:0,baseTs:0,defDay:60000,defMon:200000};
-var S={meta:{},raw:{},seen:{},synced:true,wallets:[],settings:Object.assign({},DEFAULTS),ledger:{},closes:[],ready:{},mode:'local',live:false,waited:false};
-var UI={dest:'vf',costManual:false,flt:'all',kind:'out',sel:null,manualSel:false,feeManual:false,pct:null,showAll:false,tab:'tx',setupDone:false,invKey:'',sm:'one',sp:{},col:null,spKey:'',svc:'vf',hd:null,hflt:'all'};
+var S={inbox:{},meta:{},raw:{},seen:{},synced:true,wallets:[],settings:Object.assign({},DEFAULTS),ledger:{},closes:[],ready:{},mode:'local',live:false,waited:false};
+var UI={dest:'vf',costManual:false,flt:'all',kind:'out',sel:null,manualSel:false,feeManual:false,pct:null,showAll:false,tab:'tx',setupDone:false,invKey:'',sm:'one',sp:{},col:null,spKey:'',svc:'vf',hd:null,hflt:'all',pendKey:''};
 var db=null,Q=Promise.resolve(),FS=null,USER=null,UNS=[];
 var col=function(n){return db.collection(n)};
 var queue=function(fn){Q=Q.then(fn).catch(function(e){toast('تعذّر الحفظ: '+((e&&e.message)||(e&&e.code)||'خطأ'),true)});return Q};
@@ -501,7 +507,7 @@ function renderAll(){
   var pill=$('#syncPill');
   setPill(pill);
   $('#dateLine').textContent=new Date().toLocaleDateString('ar-EG-u-nu-latn',{timeZone:'Africa/Cairo',weekday:'long',day:'numeric',month:'long'});
-  renderTx(C);renderWallets(C);renderDay(C);renderSet();renderOpen(C);renderHist(C);
+  renderTx(C);renderWallets(C);renderDay(C);renderSet();renderOpen(C);renderHist(C);renderPend(C);
 }
 
 function renderTx(C){
@@ -951,6 +957,7 @@ async function wipeAll(){
     lids.forEach(function(id){p=p.then(function(){return col('ledger').doc(id).delete()})});
     cids.forEach(function(id){p=p.then(function(){return col('closes').doc(id).delete()})});
     wids.forEach(function(id){p=p.then(function(){return col('wallets').doc(id).delete()})});
+    Object.keys(S.inbox).forEach(function(d){p=p.then(function(){return col('settings').doc('inbox_'+d).delete()})});
     return p.then(function(){return col('settings').doc('main').delete()});
   }).then(function(){UI.invKey='';toast('اتمسحت كل البيانات');showTab('tx')});
 }
@@ -966,8 +973,124 @@ function doWipe(){
     p=p.then(function(){return col('settings').doc('main').set(Object.assign({},S.settings,{baseCash:C.cash,baseTs:ts}))});
     lids.forEach(function(id){p=p.then(function(){return col('ledger').doc(id).delete()})});
     cids.forEach(function(id){p=p.then(function(){return col('closes').doc(id).delete()})});
+    Object.keys(S.inbox).forEach(function(d){p=p.then(function(){return col('settings').doc('inbox_'+d).delete()})});
     return p;
   }).then(function(){toast('اتمسحت كل المعاملات')});
+}
+
+/* ---------- SMS ---------- */
+var AR='٠١٢٣٤٥٦٧٨٩';
+function nrm(x){return String(x||'').replace(/[٠-٩]/g,function(d){return AR.indexOf(d)}).replace(/[‎‏‪-‮]/g,'').replace(/\s+/g,' ')}
+var nv=function(x){return parseFloat(String(x).replace(/,/g,''))};
+var N='(\\d+(?:\\.\\d+)?)';
+function parseSms(body,date){
+  var t=nrm(body),m,r;
+  if(/طلب سحب/.test(t))return null;
+  var idm=t.match(/رقم العملية[^\d]{0,8}(\d{8,})/);if(!idm)return null;
+  r={id:idm[1],ts:date||Date.now()};
+  var bal=function(re){var q=t.match(re);if(q)r.bal=nv(q[1])};
+  if((m=t.match(new RegExp('تم استلام مبلغ\\s*'+N)))){
+    r.k='in';r.a=nv(m[1]);
+    q=t.match(/محفظتك\s*(\d{10,11})/);if(q)r.wn=q[1];
+    var q=t.match(/من رقم\s*(\d+)\s*المسجل\s*بإسم\s*(.+?)\s*على رقم/);r.p=q?q[2]:((t.match(/من رقم\s*(\d+)/)||[])[1]||'');
+    bal(new RegExp('رصيدك الحالي\\D{0,3}'+N));
+  }else if((m=t.match(new RegExp('تم تحويل\\s*'+N+'\\s*جنيه')))){
+    r.k='out';r.a=nv(m[1]);
+    var f=t.match(new RegExp('مصاريف الخدمة\\s*'+N));r.c=f?nv(f[1]):0;
+    r.p=(t.match(/لرقم\s*(\d+)/)||[])[1]||'';
+    bal(new RegExp('رصيد حسابك.*?الحالي\\D{0,3}'+N));
+  }else if((m=t.match(new RegExp('تم سحب\\s*(?:مبلغ\\s*)?'+N+'\\s*جنيه')))){
+    r.k='cashout';r.a=nv(m[1]);
+    bal(new RegExp('رصيد حسابك الحالي\\D{0,3}'+N));
+  }else if((m=t.match(new RegExp('تم إيداع\\s*'+N)))){
+    r.k='dep';r.a=nv(m[1]);
+    var w=t.match(/إلى رقم\s*(\d{10,11})/);if(w)r.wn=w[1];
+    bal(new RegExp('رصيدك الحالي\\D{0,3}'+N));
+  }else return null;
+  return r;
+}
+function smsPlugin(){return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SmsReader}
+var PKIND={in:'استلام (سحب زبون)',out:'تحويل صادر',cashout:'سحب كاش من المحفظة',dep:'إيداع في المحفظة'};
+function pendingItems(C){
+  var done={};liveTxs().forEach(function(t){if(t.sid)done[t.sid]=1});
+  var ign={},all={};
+  Object.keys(S.inbox).forEach(function(d){var o=S.inbox[d]||{};(o.ign||[]).forEach(function(i){ign[i]=1});Object.keys(o.items||{}).forEach(function(i){all[i]=Object.assign(all[i]||{},o.items[i])})});
+  var list=Object.keys(all).filter(function(i){return !done[i]&&!ign[i]}).map(function(i){return all[i]}).sort(function(a,b){return a.ts-b.ts});
+  var vb={};S.wallets.forEach(function(w){if(C.W[w.id])vb[w.id]=C.W[w.id].bal});
+  list.forEach(function(it){
+    var delta=it.k==='out'?-(it.a+(it.c||0)):it.k==='cashout'?-it.a:it.a,cand=S.wallets.filter(function(w){return w.active!==false&&w.type!=='insta'}),pick=null;
+    if(it.wn){var d10=String(it.wn).slice(-10);cand.forEach(function(w){if(String(w.phone||'').replace(/\D/g,'').slice(-10)===d10)pick=w.id})}
+    if(!pick&&it.bal!=null){var hit=cand.filter(function(w){return Math.abs(vb[w.id]+delta-it.bal)<0.011});if(hit.length===1)pick=hit[0].id}
+    it.sug=pick;if(pick)vb[pick]+=delta;
+  });
+  return list;
+}
+function renderPend(C){
+  var box=$('#pendBox'),P=smsPlugin();
+  var items=pendingItems(C);
+  var key=items.map(function(i){return i.id+':'+(i.sug||'')+':'+(i.bal==null?'':i.bal)}).join('|')+'|'+S.wallets.map(function(w){return w.id+w.name}).join(',')+'|'+(P?1:0);
+  $('#smsInfo').textContent=P?'التطبيق بيقرا رسائل فودافون كاش على الموبايل ده ويعرضها كعمليات مقترحة تأكدها بضغطة.':'قراءة الرسائل بتشتغل في تطبيق الأندرويد (APK) بس. العمليات المقترحة من أي موبايل بتظهر هنا برضه.';
+  $('#smsScan').style.display=P?'':'none';
+  if(key===UI.pendKey)return;
+  var ae=document.activeElement;if(ae&&box.contains(ae)&&ae.tagName==='INPUT')return;
+  UI.pendKey=key;
+  if(!items.length&&!P){box.innerHTML='';return}
+  var ws=S.wallets.filter(function(w){return w.active!==false&&w.type!=='insta'});
+  var h='<div class="card"><div class="row" style="justify-content:space-between"><b>رسائل جديدة ('+items.length+')</b>'+(P?'<button class="ghost" id="smsScan2" style="flex:0 0 auto">فحص</button>':'')+'</div>';
+  if(!items.length)h+='<div class="small">مفيش رسائل جديدة.</div>';
+  items.forEach(function(it){
+    var isF=it.k!=='dep',lbl=it.k==='cashout'?'خسارة السحب':'عمولتك',defF=it.k==='in'||it.k==='out'?Math.round(it.a*S.settings.feePct/100):it.k==='cashout'?Math.round(it.a*S.settings.feePctC/100):0;
+    h+='<div class="sp" data-pid="'+esc(it.id)+'"><div class="l1"><b>'+PKIND[it.k]+' · '+fm2(it.a)+' ج</b><span class="small num">'+hhmm(it.ts)+'</span></div>'+
+      '<div class="small num">'+(it.p?esc(it.p)+' · ':'')+(it.c?'رسوم المحفظة '+fm2(it.c)+' · ':'')+(it.bal!=null?'الرصيد بعدها '+fm2(it.bal):'')+'</div>'+
+      '<div class="row"><select data-pw><option value="">اختار المحفظة</option>'+ws.map(function(w){return '<option value="'+esc(w.id)+'"'+(w.id===it.sug?' selected':'')+'>'+esc(w.name)+(w.phone?' · '+esc(w.phone):'')+'</option>'}).join('')+'</select>'+
+      (isF?'<input data-pf inputmode="decimal" autocomplete="off" placeholder="'+lbl+'" value="'+defF+'">':'')+'</div>'+
+      '<div class="row"><button class="ghost" data-pig="1">تجاهل</button><button class="primary" data-pok="1" style="padding:9px">تسجيل</button></div></div>';
+  });
+  box.innerHTML=h+'</div>';
+}
+function myInbox(){var o=S.inbox[DEV]||{};return {items:Object.assign({},o.items||{}),ign:(o.ign||[]).slice()}}
+function saveInbox(o){S.inbox[DEV]=o;changed();return queue(function(){return col('settings').doc('inbox_'+DEV).set(o)})}
+function pendAction(card,ok){
+  var id=card.dataset.pid,C=compute(),it=pendingItems(C).filter(function(x){return x.id===id})[0];if(!it)return;
+  if(!writable()){toast('استنى لحد ما البيانات تتحمّل',true);return}
+  if(!ok){var m=myInbox();if(m.ign.indexOf(id)<0)m.ign.push(id);UI.pendKey='';saveInbox(m);toast('اتجاهلت الرسالة');return}
+  var wid=card.querySelector('[data-pw]').value;if(!wid){toast('اختار المحفظة الأول',true);return}
+  var fi=card.querySelector('[data-pf]'),F=fi?Math.max(0,NUM(fi.value)):0,x=C.W[wid];
+  var rec={id:rid('t'),ts:it.ts,w:wid,a:it.a,f:F,n:it.p||'',sid:it.id};
+  if(it.k==='in')rec.k='in';
+  else if(it.k==='out'){rec.k='out';rec.c=it.c||0;rec.d=(it.c||0)<=S.settings.vfSame+0.0001?'vf':'other'}
+  else if(it.k==='cashout')rec.k='cashout';
+  else{rec.k='topup';rec.f=0}
+  if(x&&((rec.k==='out'&&x.bal<it.a+(it.c||0)-0.005)||(rec.k==='cashout'&&x.bal<it.a-0.005))){toast(MSG+' (راجع رصيد المحفظة أو اختار محفظة تانية)',true);return}
+  UI.pendKey='';addTx(rec);toast('اتسجّلت: '+PKIND[it.k]+' '+fm2(it.a));
+}
+async function scanSms(manual){
+  var P=smsPlugin();if(!P||!writable())return;
+  try{
+    var st=await P.checkPermissions();
+    if(st.sms!=='granted'){if(!manual)return;st=await P.requestPermissions();if(st.sms!=='granted'){toast('لازم تسمح بقراءة الرسائل',true);return}}
+    var last=0;try{last=+localStorage.getItem('dw_scan')||0}catch(e){}
+    var since=manual||!last?dayStart(Date.now()-864e5):last-60000;
+    var res=await P.getSms({since:since,limit:500}),msgs=(res&&res.messages)||[],found={},maxd=last;
+    msgs.forEach(function(m){
+      maxd=Math.max(maxd,m.date||0);
+      if(!/vf/i.test(m.address||''))return;
+      var r=parseSms(m.body,m.date);if(!r)return;
+      found[r.id]=found[r.id]?Object.assign(found[r.id],r):r;
+    });
+    var my=myInbox(),done={};liveTxs().forEach(function(t){if(t.sid)done[t.sid]=1});
+    var ign={};Object.keys(S.inbox).forEach(function(d){((S.inbox[d]||{}).ign||[]).forEach(function(i){ign[i]=1})});
+    var add=0,upd=false;
+    Object.keys(found).forEach(function(id){
+      if(done[id]||ign[id])return;
+      var old=my.items[id];
+      if(!old){my.items[id]=found[id];add++;upd=true}
+      else{var mg=Object.assign({},old,found[id]);if(JSON.stringify(mg)!==JSON.stringify(old)){my.items[id]=mg;upd=true}}
+    });
+    if(upd){UI.pendKey='';await saveInbox(my)}
+    try{localStorage.setItem('dw_scan',String(maxd||Date.now()))}catch(e){}
+    if(manual)toast(add?'لقيت '+add+' رسالة جديدة':'مفيش رسائل جديدة');
+  }catch(e){if(manual)toast('تعذّر قراءة الرسائل: '+((e&&e.message)||e),true)}
 }
 
 /* ---------- events ---------- */
@@ -976,6 +1099,8 @@ document.addEventListener('click',function(e){
   var t=e.target.closest('button');if(!t)return;
   if(t.dataset.t)return showTab(t.dataset.t);
   if(t.dataset.oc)return openCashSheet();
+  if(t.dataset.pok||t.dataset.pig){var cd0=t.closest('[data-pid]');if(cd0)pendAction(cd0,!!t.dataset.pok);return}
+  if(t.id==='smsScan'||t.id==='smsScan2')return scanSms(true);
   if(t.dataset.svc){UI.svc=t.dataset.svc;UI.kind=UI.svc==='insta'?'iout':'out';UI.sm='one';UI.sp={};UI.spKey='';UI.col=null;UI.sel=null;UI.manualSel=false;UI.feeManual=false;UI.costManual=false;UI.pct=null;UI.showAll=false;return changed()}
   if(t.dataset.hd){UI.hd=t.dataset.hd;return changed()}
   if(t.dataset.hf){UI.hflt=t.dataset.hf;return changed()}
@@ -1019,8 +1144,9 @@ $('#fee').addEventListener('input',function(){UI.feeManual=true;changed()});
 $('#cost').addEventListener('input',function(){UI.costManual=true;changed()});
 $('#invCash').addEventListener('input',function(){updateDiffs(compute())});
 $('#invRows').addEventListener('input',function(){updateDiffs(compute())});
-setInterval(function(){if(!document.hidden)changed()},60000);
-document.addEventListener('visibilitychange',function(){if(!document.hidden)changed()});
+setInterval(function(){if(!document.hidden){changed();scanSms(false)}},60000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden){changed();scanSms(false)}});
+setTimeout(function(){scanSms(false)},4000);
 
 /* ---------- backup ---------- */
 function bkExport(){
@@ -1049,7 +1175,7 @@ function restoreData(o){
   Object.keys(o).forEach(function(k){if(!/^(wallets|ledger|closes|settings)\//.test(k))return;var i=k.indexOf('/');p=p.then(function(){return col(k.slice(0,i)).doc(k.slice(i+1)).set(o[k])})});
   return p;
 }
-function resetState(){S.wallets=[];S.settings=Object.assign({},DEFAULTS);S.ledger={};S.closes=[];S.ready={};S.meta={};S.raw={};S.seen={};S.waited=false;UI.invKey='';UI.setupDone=false}
+function resetState(){S.inbox={};S.wallets=[];S.settings=Object.assign({},DEFAULTS);S.ledger={};S.closes=[];S.ready={};S.meta={};S.raw={};S.seen={};S.waited=false;UI.invKey='';UI.setupDone=false}
 function stop(){UNS.forEach(function(f){try{f()}catch(e){}});UNS=[]}
 function setPill(pill){
   if(S.mode!=='cloud'){pill.className='pill';pill.textContent='شغّال بدون نت';return}
@@ -1070,7 +1196,7 @@ function start(){
     changed()}};
   UNS.push(col('wallets').onSnapshot(mark('wallets',function(snap){S.wallets=snap.docs.map(function(d){return Object.assign({id:d.id},d.data())}).sort(function(a,b){return (a.order||0)-(b.order||0)})}),fail));
   UNS.push(col('ledger').onSnapshot(mark('ledger',function(snap){var m={};snap.docs.forEach(function(d){m[d.id]=(d.data()||{}).txs||[]});S.ledger=m}),fail));
-  UNS.push(col('settings').onSnapshot(mark('settings',function(snap){var d=snap.docs.filter(function(x){return x.id==='main'})[0];S.settings=Object.assign({},DEFAULTS,d?d.data():{})}),fail));
+  UNS.push(col('settings').onSnapshot(mark('settings',function(snap){var d=snap.docs.filter(function(x){return x.id==='main'})[0];S.settings=Object.assign({},DEFAULTS,d?d.data():{});var ib={};snap.docs.forEach(function(x){if(x.id.indexOf('inbox_')===0)ib[x.id.slice(6)]=x.data()||{}});S.inbox=ib}),fail));
   UNS.push(col('closes').onSnapshot(mark('closes',function(snap){S.closes=snap.docs.map(function(d){return Object.assign({id:d.id},d.data())})}),fail));
   setTimeout(function(){if(!writable()){S.waited=true;changed()}},10000);
   changed();
