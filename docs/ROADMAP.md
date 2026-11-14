@@ -36,7 +36,7 @@ Before moving a single line, lock in the current calculation behavior with golde
 
 **Done when:** all tests pass against the current code · `index.html` is untouched (`git diff index.html` is empty).
 
-### Phase 2 — Architecture plan 🔄
+### Phase 2 — Architecture plan ✅
 
 - [x] Write `docs/ARCHITECTURE.md` with:
   - The layers: `domain` → `application` → `infrastructure` / `presentation`, and the dependency rule.
@@ -65,7 +65,7 @@ Fixed rules: native ES modules (`<script type="module">`) · **no bundler, no np
 **Done when:** the document exists and every function appears in the table.
 ⛔ **STOP** — present the plan and wait for approval.
 
-### Phase 3 — Domain layer ⬜
+### Phase 3 — Domain layer 🔄
 
 - [ ] Move pure logic into `src/domain/`: operation kinds, money and fees, limits, time and day keys in Cairo time, split planning, wallet ranking, SMS parsing, number normalization.
 - [ ] Every function: inputs in, values out, no globals.
@@ -166,3 +166,4 @@ Not allowed: changing any calculation or data shape. Font: the system font stack
 |---|---|---|
 | 2026-11-15 | 0 — Setup | Added `AGENTS.md`, `CLAUDE.md`, the skills (`daftar-ui`, `daftar-ui-review`, `frontend-design`), the `/next` command, and this roadmap. |
 | 2026-11-15 | 1 — Safety net | Wrote `docs/inventory.md` (full function/state/Firestore/DOM map of `index.html`). Built a `vm`-sandboxed harness (`tests/harness/loadApp.js`) that loads `index.html`'s inline script unmodified and exports its internals for testing. Added 34 `node --test` cases across `tests/unit/*.test.js` covering `compute`, `buildPlan`, `rank`, `walletCost`, `xferCost`, `maxAmt`, `cd`, `wd`, `splitWallets`, `parseSms`, `NUM`, `nrm`, `dayKey`, `dayStart`, `shiftDay`, Cairo midnight/month-boundary limit resets, and Arabic-Indic digit input. All pass; `git diff index.html` is empty. Note: on this machine's Node v22.22.1, `node --test tests/` itself fails (`MODULE_NOT_FOUND`, reproduces even in an unrelated empty project) — bare `node --test` is the one command that works and finds all tests. |
+| 2026-11-15 | 2 — Architecture plan | Wrote `docs/ARCHITECTURE.md`: layers + dependency rule, final folder structure, a full function/state → module table (cross-checked against `docs/inventory.md` with a script — nothing missing), the hidden-coupling fixes, and the `sw.js`/`build-apk.yml` pickup plan. Owner approved; no code changed. |
