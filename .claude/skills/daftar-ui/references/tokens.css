@@ -1,4 +1,4 @@
-/* Daftar design tokens — source of truth. Copy into index.html <style>.
+/* Daftar design tokens — source of truth. Copy into styles/tokens.css.
    Components use var(--token) only. Every token exists in both themes. */
 
 :root{

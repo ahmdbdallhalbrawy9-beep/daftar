@@ -1,6 +1,6 @@
 ---
 name: daftar-ui-review
-description: Verify a UI change in the Daftar app across light/dark themes, phone/tablet/desktop widths, RTL, and core flows before committing. Use after any change to index.html styles, markup, or navigation.
+description: Verify a UI change in the Daftar app across light/dark themes, phone/tablet/desktop widths, RTL, and core flows before committing. Use after any change to styles/*.css or src/presentation/ (markup, views, navigation).
 ---
 
 # Daftar UI review
@@ -57,4 +57,5 @@ Check every tab (عملية · المحافظ · اليوم · السجل · إ�
 
 **Ship**
 - [ ] `CACHE` in `sw.js` bumped.
-- [ ] Any new file added to `sw.js` FILES and `build-apk.yml` copy line.
+- [ ] `node scripts/check-precache.mjs` passes (catches a new file missing from `sw.js` FILES).
+- [ ] `node --test` still passes.

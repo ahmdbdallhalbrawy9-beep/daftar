@@ -1,6 +1,6 @@
 ---
 name: daftar-ui
-description: Design system for the Daftar wallet-ledger app (Arabic RTL PWA). Load before ANY change to layout, CSS, navigation, theme (light/dark/system), sidebar, menus, cards, forms, sheets, or new screens in index.html.
+description: Design system for the Daftar wallet-ledger app (Arabic RTL PWA). Load before ANY change to layout, CSS, navigation, theme (light/dark/system), sidebar, menus, cards, forms, sheets, or new screens — markup in index.html, styles in styles/*.css, rendering in src/presentation/.
 ---
 
 # Daftar UI — design system
@@ -99,9 +99,9 @@ Short and functional: 120–200ms, `ease-out`. Tab fade, sheet slide-up, toast f
 
 ## 10. Implementation checklist for any UI change
 
-1. Use tokens only; add a token to `references/tokens.css` (and `index.html`) if one is truly missing — in both themes.
+1. Use tokens only; add a token to `references/tokens.css` (and `styles/tokens.css`) if one is truly missing — in both themes.
 2. Logical properties only (no `left`/`right`/`margin-left` for layout).
-3. Keep all element IDs and `data-*` hooks the JS uses (`data-t`, `data-k`, `data-s`, `data-svc`, IDs listed in markup). If you rename one, update every `$('#…')` reference.
-4. Don't touch money functions (see AGENTS.md rule 8).
-5. Bump `CACHE` in `sw.js`.
+3. Keep all element IDs and `data-*` hooks the JS uses (`data-t`, `data-k`, `data-s`, `data-svc`, IDs listed in markup). If you rename one, update every `$('#…')` reference in `src/presentation/` (mainly `views/` and `components/`) and `src/main.js`.
+4. Don't touch money functions (see AGENTS.md rule 8; they live in `src/domain/`).
+5. Bump `CACHE` in `sw.js`; run `node scripts/check-precache.mjs` if you added a file.
 6. Run the `daftar-ui-review` skill.

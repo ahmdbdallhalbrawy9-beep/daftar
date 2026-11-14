@@ -26,6 +26,8 @@ jobs:
           npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
           mkdir www
           cp ../index.html ../sw.js ../manifest.webmanifest ../firebase-config.js ../icon-192.png ../icon-512.png ../icon-maskable-512.png www/
+          cp -r ../src www/src
+          cp -r ../styles www/styles
           cat > capacitor.config.json <<'EOF'
           {
             "appId": "com.daftar.wallet",
