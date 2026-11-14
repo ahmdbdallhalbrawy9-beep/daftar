@@ -195,7 +195,7 @@ input as a parameter (`cd`, `wd`, `maxAmt`, `baseK`, `isInsta`, `isInsT`, `NUM`,
 | `resetState` | 1194 | `application/sync.js` | resets the store's sync-related slice only (wallets/ledger/etc. reset is the store's job) |
 | `UNS` | 381 | `application/sync.js` | the array of `onSnapshot` unsubscribers becomes a local variable inside `startSync`/`stopSync`, not a module global |
 | `col` | 382 | — | dropped: use cases call `db.collection(name)` on the injected `DbPort` directly |
-| `writeQueue`'s `queue` | 383 | `infrastructure/writeQueue.js` | moved to infrastructure (it is a retry/serialization *mechanism* over a port, not business logic) — exposed to use cases as part of the `DbPort` the composition root builds |
+| `writeQueue`'s `queue` | 383 | `infrastructure/writeQueue.js` | **corrected in phase 4**: `createWriteQueue(onError)` lives in infrastructure, but the `queue(fn)` instance it returns is passed into every writing use case **as an explicit parameter**, the same way `db`/`clock` are — not baked into the `DbPort` itself. Several use cases (`closeDay`, `wipeAllData`, `wipeTransactions`, `setupWallets`, `restoreBackup`) build one whole multi-step promise chain and hand it to a single `queue()` call, exactly like index.html's `doClose`/`wipeAll`/`doWipe`/`doSetup`/`restoreData` do — wrapping the `DbPort`'s methods individually would have serialized each write *separately*, losing that "nothing else can write in the middle of this operation" guarantee, which matters for money correctness (hard rule 8). |
 | `addTx` | 480 | `application/transactions.js` | folded into `recordTransaction` |
 | `addTxs` | 486 | `application/transactions.js` | folded into `recordTransaction` |
 | `save` | 902 | `application/transactions.js` | `recordTransaction(db, clock, { kind, amount, fee, cost, dest, note, selectedWallet, splitMode, splits, collectorId }, wallets, computeResult)` |
@@ -234,7 +234,7 @@ input as a parameter (`cd`, `wd`, `maxAmt`, `baseK`, `isInsta`, `isInsT`, `NUM`,
 | `FS` | 381 | `infrastructure/firestoreDb.js` | the `firebase.firestore()` instance becomes a local variable inside this module, not a module global |
 | `queue`, `Q` | 383 | `infrastructure/writeQueue.js` | see application table note |
 | `DEV` | 357 | `infrastructure/deviceId.js` | unchanged behavior (localStorage-backed) |
-| `rid` | 355 | `infrastructure/deviceId.js` | unchanged |
+| `rid` | 355 | `domain/ids.js` | **corrected in phase 4** (was planned for `infrastructure/deviceId.js`): `application` use cases need it to build tx/wallet ids before persisting, and `application` must never import `infrastructure` — it's pure (`Math.random`/`Date.now`, no app state), so it moved to domain, which both layers may import. |
 | `smsPlugin` | 1027 | `infrastructure/smsPlugin.js` | implements `SmsPort`; wraps `window.Capacitor.Plugins.SmsReader` |
 | `bkExport`'s DOM part (Blob/`<a>`/click) | 1168 | `infrastructure/download.js` | `triggerDownload(blob, filename)` |
 | `#bkFile` FileReader read | 1175 | `infrastructure/download.js` | `readFileAsText(file)` |
