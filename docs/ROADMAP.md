@@ -73,7 +73,7 @@ Fixed rules: native ES modules (`<script type="module">`) · **no bundler, no np
 
 **Done when:** `node --test tests/` passes · nothing inside `domain` imports from outside `domain`.
 
-### Phase 4 — Application and infrastructure ⬜
+### Phase 4 — Application and infrastructure 🔄
 
 - [ ] Use cases: record transaction(s), void transaction, close day, suggest wallet, manage wallets, settings, backup/restore, wipe, import SMS, login/logout.
 - [ ] Ports (JSDoc interfaces) + adapters: Firestore, local DB (offline fallback), write queue, Firebase Auth, SMS plugin, localStorage, clock.
