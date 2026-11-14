@@ -82,7 +82,7 @@ Fixed rules: native ES modules (`<script type="module">`) · **no bundler, no np
 
 **Done when:** all tests pass · `application` never imports from `infrastructure`.
 
-### Phase 5 — Presentation and CSS split ⬜
+### Phase 5 — Presentation and CSS split 🔄
 
 - [ ] Store (state + change notifications), tab router, a view per tab (transaction, wallets, today, history, settings, login), components (sheet, toast, pill…), formatters (`fmt`, `fm2`, `esc`).
 - [ ] Split the CSS into `styles/` with **exactly the same values** (no visual change).
