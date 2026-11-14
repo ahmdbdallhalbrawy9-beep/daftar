@@ -148,6 +148,7 @@ nav button.on{background:var(--accent-soft);color:var(--accent)}
   <section id="tab-tx" class="tab on">
     <div id="setup"></div>
     <div id="notice"></div>
+    <div id="guideBox"></div>
     <div id="openBanner"></div>
     <div id="pendBox"></div>
     <div class="seg" id="svcTx"></div>
@@ -507,7 +508,7 @@ function renderAll(){
   var pill=$('#syncPill');
   setPill(pill);
   $('#dateLine').textContent=new Date().toLocaleDateString('ar-EG-u-nu-latn',{timeZone:'Africa/Cairo',weekday:'long',day:'numeric',month:'long'});
-  renderTx(C);renderWallets(C);renderDay(C);renderSet();renderOpen(C);renderHist(C);renderPend(C);
+  renderTx(C);renderWallets(C);renderDay(C);renderSet();renderOpen(C);renderHist(C);renderPend(C);renderGuide();
 }
 
 function renderTx(C){
@@ -597,7 +598,8 @@ function setupHTML(){
   '<div class="f2"><div><label for="nVf">عدد محافظ فودافون</label><input id="nVf" inputmode="numeric" value="12"></div><div><label for="nIn">عدد حسابات إنستاباي</label><input id="nIn" inputmode="numeric" value="2"></div>'+
   '<div><label for="vfD">فودافون: ليميت يومي</label><input id="vfD" inputmode="numeric" value="60000"></div><div><label for="vfM">فودافون: ليميت شهري</label><input id="vfM" inputmode="numeric" value="200000"></div>'+
   '<div><label for="inD">إنستاباي: ليميت يومي</label><input id="inD" inputmode="numeric" value="120000"></div><div><label for="inM">إنستاباي: ليميت شهري</label><input id="inM" inputmode="numeric" value="400000"></div></div>'+
-  '<button class="primary" id="doSetup">إنشاء المحافظ</button></div>';
+  '<button class="primary" id="doSetup">إنشاء المحافظ</button></div>'+
+  '<div class="card"><b>بعد كده</b><div class="small">1) اكتب رقم كل محفظة · 2) اظبط الأرصدة من الجرد · 3) سجّل نقدية الدرج أول اليوم · 4) سجّل عملياتك، أو أكّدها من الرسائل الجديدة.</div></div>';
 }
 
 function renderSplit(C,A,F){
@@ -688,6 +690,19 @@ function renderWallets(C){
   }).join('');
 }
 
+function renderGuide(){
+  var box=$('#guideBox'),dis=false;try{dis=localStorage.getItem('dw_guide')==='1'}catch(e){}
+  if(dis||!S.wallets.length||!writable()){box.innerHTML='';return}
+  var act=S.wallets.filter(function(w){return w.active!==false}),noPh=act.filter(function(w){return !(w.phone||'').trim()}).length,opened=S.settings.openDay===dayKey(Date.now());
+  if(!noPh&&opened){box.innerHTML='';return}
+  var li=function(done,t){return '<div class="small" style="display:flex;gap:6px"><span>'+(done?'✅':'⬜')+'</span><span>'+t+'</span></div>'};
+  box.innerHTML='<div class="card"><b>خطوات البداية</b>'+
+    li(true,'المحافظ اتعملت')+
+    li(!noPh,'اكتب رقم كل محفظة من تبويب "المحافظ" ← تعديل'+(noPh?' (باقي '+noPh+')':''))+
+    li(false,'اظبط رصيد كل محفظة من تبويب "اليوم" ← الجرد، عشان الرسائل تتعرف على المحفظة')+
+    li(opened,'سجّل "إدخال نقدية الدرج" أول كل يوم')+
+    '<button class="ghost" id="guideOk">تمام، فهمت</button></div>';
+}
 function renderOpen(C){
   var tk=dayKey(Date.now()),opened=S.settings.openDay===tk;
   $('#openBanner').innerHTML=(!opened&&writable()&&S.wallets.length)?'<div class="notice" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>لسه ما سجّلتش نقدية الدرج النهارده</span><button class="ghost" data-oc="1" style="flex:0 0 auto;background:var(--surface)">إدخال نقدية الدرج</button></div>':'';
@@ -1099,6 +1114,7 @@ document.addEventListener('click',function(e){
   var t=e.target.closest('button');if(!t)return;
   if(t.dataset.t)return showTab(t.dataset.t);
   if(t.dataset.oc)return openCashSheet();
+  if(t.id==='guideOk'){try{localStorage.setItem('dw_guide','1')}catch(e){}$('#guideBox').innerHTML='';return}
   if(t.dataset.pok||t.dataset.pig){var cd0=t.closest('[data-pid]');if(cd0)pendAction(cd0,!!t.dataset.pok);return}
   if(t.id==='smsScan'||t.id==='smsScan2')return scanSms(true);
   if(t.dataset.svc){UI.svc=t.dataset.svc;UI.kind=UI.svc==='insta'?'iout':'out';UI.sm='one';UI.sp={};UI.spKey='';UI.col=null;UI.sel=null;UI.manualSel=false;UI.feeManual=false;UI.costManual=false;UI.pct=null;UI.showAll=false;return changed()}

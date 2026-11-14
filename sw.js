@@ -1,5 +1,5 @@
 /* يخزّن التطبيق على الموبايل عشان يفتح من غير نت. غيّر رقم النسخة عند أي تحديث. */
-var CACHE='daftar-v5';
+var CACHE='daftar-v6';
 var FB='https://www.gstatic.com/firebasejs/10.12.2/';
 var SDK=[FB+'firebase-app-compat.js',FB+'firebase-auth-compat.js',FB+'firebase-firestore-compat.js'];
 var FILES=['./','index.html','manifest.webmanifest','firebase-config.js','icon-192.png','icon-512.png','icon-maskable-512.png'];
