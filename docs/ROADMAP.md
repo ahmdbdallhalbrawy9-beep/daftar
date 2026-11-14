@@ -36,9 +36,9 @@ Before moving a single line, lock in the current calculation behavior with golde
 
 **Done when:** all tests pass against the current code · `index.html` is untouched (`git diff index.html` is empty).
 
-### Phase 2 — Architecture plan ⬜
+### Phase 2 — Architecture plan 🔄
 
-- [ ] Write `docs/ARCHITECTURE.md` with:
+- [x] Write `docs/ARCHITECTURE.md` with:
   - The layers: `domain` → `application` → `infrastructure` / `presentation`, and the dependency rule.
   - The final folder structure (proposal below).
   - A **table** mapping every current function and piece of state to its new module.
