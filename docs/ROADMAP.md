@@ -24,7 +24,7 @@ Goal: split the app (all of it currently in `index.html`) into clear layers, wit
 
 Branch for every phase in this track: `refactor/clean-arch` from `saeed-develop`.
 
-### Phase 1 — Safety net (tests before moving anything) ⬜
+### Phase 1 — Safety net (tests before moving anything) 🔄
 
 Before moving a single line, lock in the current calculation behavior with golden-master tests, so every later move can be proven not to change results.
 
