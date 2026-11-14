@@ -2,6 +2,9 @@
 
 Instructions for any coding agent (Claude Code, Codex, Cursor, …) working in this repo.
 
+> **Work follows [`docs/ROADMAP.md`](docs/ROADMAP.md)** — one phase per session, in order, stopping at every ⛔.
+> Talk to the project owner in **Egyptian Arabic**. Code, identifiers and commit messages stay in English.
+
 ## What this app is
 
 A ledger for a small mobile-wallet service point in Egypt (نقطة خدمات محافظ إلكترونية).
@@ -28,6 +31,11 @@ wallet limits, profit, and the cash drawer.
 | `.github/workflows/build-apk.yml` | Manual (`workflow_dispatch`) debug APK build |
 
 There is **no build step, no bundler, no package.json**. Firebase compat SDK 10.12.2 loads from gstatic.
+
+> This single-file layout is **temporary**. Roadmap track 1 (phases 1–6) moves it to a clean architecture
+> (`src/domain`, `src/application`, `src/infrastructure`, `src/presentation`, `styles/`) with native ES modules
+> and still no build step. During that track, `docs/ARCHITECTURE.md` (once approved) overrides rule 10 below.
+> Phase 6 rewrites this section.
 
 ## Hard rules
 
@@ -60,5 +68,6 @@ python3 -m http.server 8080   # then open http://localhost:8080
 
 ## Git
 
-- Work on feature branches off `saeed-develop`; `main` is what ships.
+- Work on the branch the roadmap phase names (branched off `saeed-develop`); `main` is what ships.
+- **Never `git push`** — the owner pushes and merges.
 - Small, focused commits; message says what changed for the user (e.g. "ui: sidebar navigation on wide screens").
