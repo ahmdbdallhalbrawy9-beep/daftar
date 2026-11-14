@@ -1,0 +1,20 @@
+/* Design tokens: light theme values, dark overrides via prefers-color-scheme
+   and the explicit [data-theme] attribute. Extracted from index.html's
+   <style> block unchanged (values identical — no visual change). */
+:root{
+  --bg:#f2f4f0; --surface:#ffffff; --fg:#17211c; --muted:#62706a; --line:#dce2dc;
+  --accent:#0d6b54; --accent-fg:#ffffff; --accent-soft:#d9eee6;
+  --good:#1b7a3a; --good-soft:#dcf1e2; --warn:#9a5b00; --warn-soft:#fbeccf; --bad:#b3261e; --bad-soft:#f9dfdc;
+  --shadow:0 1px 2px rgba(20,40,30,.06);
+  --font:system-ui,"Segoe UI",Roboto,Tahoma,"Noto Sans Arabic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1512; --surface:#18201c; --fg:#e8eee9; --muted:#93a39a; --line:#27322d;
+  --accent:#4cc29b; --accent-fg:#052419; --accent-soft:#1b3a30;
+  --good:#6fd08c; --good-soft:#173324; --warn:#e8aa52; --warn-soft:#38290f; --bad:#ff8f86; --bad-soft:#3b1d1a;
+  --shadow:none; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1512; --surface:#18201c; --fg:#e8eee9; --muted:#93a39a; --line:#27322d;
+  --accent:#4cc29b; --accent-fg:#052419; --accent-soft:#1b3a30;
+  --good:#6fd08c; --good-soft:#173324; --warn:#e8aa52; --warn-soft:#38290f; --bad:#ff8f86; --bad-soft:#3b1d1a;
+  --shadow:none; color-scheme:dark}

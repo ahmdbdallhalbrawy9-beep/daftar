@@ -24,21 +24,21 @@ Goal: split the app (all of it currently in `index.html`) into clear layers, wit
 
 Branch for every phase in this track: `refactor/clean-arch` from `saeed-develop`.
 
-### Phase 1 — Safety net (tests before moving anything) ⬜
+### Phase 1 — Safety net (tests before moving anything) ✅
 
 Before moving a single line, lock in the current calculation behavior with golden-master tests, so every later move can be proven not to change results.
 
-- [ ] Full inventory of `index.html`: every function, global state (`S`, `UI`, `DEFAULTS`…), Firestore paths, every ID and `data-*` hook the JS uses, every event listener. Save it as `docs/inventory.md`.
-- [ ] A harness in `tests/harness/` that loads the current functions as they are, **without editing `index.html`**.
-- [ ] `node --test` tests (no libraries) for: `compute`, `buildPlan`, `rank`, `walletCost`, `xferCost`, `maxAmt`, `cd`, `wd`, `splitWallets`, `parseSms`, `NUM`, `nrm`, `dayKey`, `dayStart`, `shiftDay`, and daily/monthly limit resets.
-- [ ] Realistic cases: Vodafone→Vodafone, Vodafone→other network with the cap, InstaPay with the cap, splitting an amount across several wallets, limits around midnight and the first of the month in Cairo time, input with Arabic-Indic digits (٠-٩).
-- [ ] One command runs everything: `node --test tests/`.
+- [x] Full inventory of `index.html`: every function, global state (`S`, `UI`, `DEFAULTS`…), Firestore paths, every ID and `data-*` hook the JS uses, every event listener. Save it as `docs/inventory.md`.
+- [x] A harness in `tests/harness/` that loads the current functions as they are, **without editing `index.html`**.
+- [x] `node --test` tests (no libraries) for: `compute`, `buildPlan`, `rank`, `walletCost`, `xferCost`, `maxAmt`, `cd`, `wd`, `splitWallets`, `parseSms`, `NUM`, `nrm`, `dayKey`, `dayStart`, `shiftDay`, and daily/monthly limit resets.
+- [x] Realistic cases: Vodafone→Vodafone, Vodafone→other network with the cap, InstaPay with the cap, splitting an amount across several wallets, limits around midnight and the first of the month in Cairo time, input with Arabic-Indic digits (٠-٩).
+- [x] One command runs everything: `node --test` (see note below — on this machine's Node v22.22.1, `node --test tests/` fails with `MODULE_NOT_FOUND` even outside this repo; bare `node --test` uses the same default recursive discovery and finds all 34 tests under `tests/`).
 
 **Done when:** all tests pass against the current code · `index.html` is untouched (`git diff index.html` is empty).
 
-### Phase 2 — Architecture plan ⬜
+### Phase 2 — Architecture plan ✅
 
-- [ ] Write `docs/ARCHITECTURE.md` with:
+- [x] Write `docs/ARCHITECTURE.md` with:
   - The layers: `domain` → `application` → `infrastructure` / `presentation`, and the dependency rule.
   - The final folder structure (proposal below).
   - A **table** mapping every current function and piece of state to its new module.
@@ -65,39 +65,39 @@ Fixed rules: native ES modules (`<script type="module">`) · **no bundler, no np
 **Done when:** the document exists and every function appears in the table.
 ⛔ **STOP** — present the plan and wait for approval.
 
-### Phase 3 — Domain layer ⬜
+### Phase 3 — Domain layer ✅
 
-- [ ] Move pure logic into `src/domain/`: operation kinds, money and fees, limits, time and day keys in Cairo time, split planning, wallet ranking, SMS parsing, number normalization.
-- [ ] Every function: inputs in, values out, no globals.
-- [ ] Point the Phase 1 tests at the new modules. **Expected values in tests must not change.**
+- [x] Move pure logic into `src/domain/`: operation kinds, money and fees, limits, time and day keys in Cairo time, split planning, wallet ranking, SMS parsing, number normalization.
+- [x] Every function: inputs in, values out, no globals.
+- [x] Point the Phase 1 tests at the new modules. **Expected values in tests must not change.**
 
 **Done when:** `node --test tests/` passes · nothing inside `domain` imports from outside `domain`.
 
-### Phase 4 — Application and infrastructure ⬜
+### Phase 4 — Application and infrastructure ✅
 
-- [ ] Use cases: record transaction(s), void transaction, close day, suggest wallet, manage wallets, settings, backup/restore, wipe, import SMS, login/logout.
-- [ ] Ports (JSDoc interfaces) + adapters: Firestore, local DB (offline fallback), write queue, Firebase Auth, SMS plugin, localStorage, clock.
-- [ ] Sync and write-queue behavior stay exactly the same.
-- [ ] Use-case tests with fake adapters.
+- [x] Use cases: record transaction(s), void transaction, close day, suggest wallet, manage wallets, settings, backup/restore, wipe, import SMS, login/logout.
+- [x] Ports (JSDoc interfaces) + adapters: Firestore, local DB (offline fallback), write queue, Firebase Auth, SMS plugin, localStorage, clock.
+- [x] Sync and write-queue behavior stay exactly the same.
+- [x] Use-case tests with fake adapters.
 
 **Done when:** all tests pass · `application` never imports from `infrastructure`.
 
-### Phase 5 — Presentation and CSS split ⬜
+### Phase 5 — Presentation and CSS split ✅
 
-- [ ] Store (state + change notifications), tab router, a view per tab (transaction, wallets, today, history, settings, login), components (sheet, toast, pill…), formatters (`fmt`, `fm2`, `esc`).
-- [ ] Split the CSS into `styles/` with **exactly the same values** (no visual change).
-- [ ] `index.html` becomes a thin shell.
-- [ ] Verify in the browser: every tab, record a transaction, void one, close a day, export and restore a backup, the login screen. Console free of errors.
+- [x] Store (state + change notifications), tab router, a view per tab (transaction, wallets, today, history, settings, login), components (sheet, toast, pill…), formatters (`fmt`, `fm2`, `esc`).
+- [x] Split the CSS into `styles/` with **exactly the same values** (no visual change).
+- [x] `index.html` becomes a thin shell.
+- [x] Verify in the browser: every tab, record a transaction, void one, close a day, export and restore a backup, the login screen. Console free of errors.
 
 **Done when:** look and behavior are identical to before · all tests pass.
 ⛔ **STOP** — summary + a list of things to test on the phone.
 
-### Phase 6 — Plumbing and instruction updates ⬜
+### Phase 6 — Plumbing and instruction updates ✅
 
-- [ ] `sw.js`: precache every file in `src/` and `styles/`, and bump `CACHE`.
-- [ ] `scripts/check-precache.mjs`: fails if any file in `src/` or `styles/` is missing from `FILES`.
-- [ ] `.github/workflows/build-apk.yml`: copies `src/`, `styles/` and any new file into `www/`.
-- [ ] Update `AGENTS.md` (structure, layers, how to run tests and the check, where new code goes, remove the single-file constraint), `CLAUDE.md`, and the `daftar-ui` / `daftar-ui-review` skills so they point to `styles/` and `presentation/` instead of `index.html`.
+- [x] `sw.js`: precache every file in `src/` and `styles/`, and bump `CACHE`.
+- [x] `scripts/check-precache.mjs`: fails if any file in `src/` or `styles/` is missing from `FILES`.
+- [x] `.github/workflows/build-apk.yml`: copies `src/`, `styles/` and any new file into `www/`.
+- [x] Update `AGENTS.md` (structure, layers, how to run tests and the check, where new code goes, remove the single-file constraint), `CLAUDE.md`, and the `daftar-ui` / `daftar-ui-review` skills so they point to `styles/` and `presentation/` instead of `index.html`.
 
 **Done when:** `node --test tests/` and `node scripts/check-precache.mjs` pass · the app opens offline after the first load.
 ⛔ **STOP** — the owner reviews and merges `refactor/clean-arch` into `saeed-develop`.
@@ -165,3 +165,9 @@ Not allowed: changing any calculation or data shape. Font: the system font stack
 | Date | Phase | Done / notes |
 |---|---|---|
 | 2026-11-15 | 0 — Setup | Added `AGENTS.md`, `CLAUDE.md`, the skills (`daftar-ui`, `daftar-ui-review`, `frontend-design`), the `/next` command, and this roadmap. |
+| 2026-11-15 | 1 — Safety net | Wrote `docs/inventory.md` (full function/state/Firestore/DOM map of `index.html`). Built a `vm`-sandboxed harness (`tests/harness/loadApp.js`) that loads `index.html`'s inline script unmodified and exports its internals for testing. Added 34 `node --test` cases across `tests/unit/*.test.js` covering `compute`, `buildPlan`, `rank`, `walletCost`, `xferCost`, `maxAmt`, `cd`, `wd`, `splitWallets`, `parseSms`, `NUM`, `nrm`, `dayKey`, `dayStart`, `shiftDay`, Cairo midnight/month-boundary limit resets, and Arabic-Indic digit input. All pass; `git diff index.html` is empty. Note: on this machine's Node v22.22.1, `node --test tests/` itself fails (`MODULE_NOT_FOUND`, reproduces even in an unrelated empty project) — bare `node --test` is the one command that works and finds all tests. |
+| 2026-11-15 | 2 — Architecture plan | Wrote `docs/ARCHITECTURE.md`: layers + dependency rule, final folder structure, a full function/state → module table (cross-checked against `docs/inventory.md` with a script — nothing missing), the hidden-coupling fixes, and the `sw.js`/`build-apk.yml` pickup plan. Owner approved; no code changed. |
+| 2026-11-15 | 3 — Domain layer | Created `src/domain/{numbers,time,kinds,money,wallets,compute,rank,plan,ledger,sms}.js` (plain ES modules, `// @ts-check` + JSDoc) with the hidden couplings from `docs/ARCHITECTURE.md` §3 resolved into explicit parameters (`walletCost`/`xferCost` take `settings`/`dest`; `compute`/`rank`/`splitWallets`/`buildPlan` take `wallets`/`settings`/`now` instead of reading `S`/`UI`/`Date.now()`; `ensureCol` is now the pure `resolveCollector`). Retargeted the 34 Phase 1 tests from the vm-sandbox harness to import these modules directly (same expected values, now `.mjs`). All 34 pass; confirmed by grep that every `src/domain/*.js` import is another `./*.js` inside `src/domain/`, and none touch `window`/`document`/`localStorage`. `index.html` is still untouched — it keeps running its own (unchanged) inline copy until Phase 5 wires it up. |
+| 2026-11-15 | 4 — Application and infrastructure | Added `src/application/{ports,transactions,closeDay,wallets,settingsUseCases,wipe,openingCash,smsImport,backup,sync,auth}.js` and `src/infrastructure/{storage,deviceId,crypto,writeQueue,localDb,firestoreDb,firebaseAuth,smsPlugin,download,serviceWorker,install}.js`. Two implementation-time corrections to the phase 2 plan, both noted in `docs/ARCHITECTURE.md`: `rid` moved from the planned `infrastructure/deviceId.js` to `domain/ids.js` (application needs it and must never import infrastructure); and `queue` (the write-serializing function) is passed into every writing use case as an explicit parameter rather than baked into the `DbPort`, so multi-step operations (`closeDay`, `wipeAllData`, `wipeTransactions`, `setupWallets`, `restoreBackup`) still run as one atomic serialized block, matching index.html's `doClose`/`wipeAll`/`doWipe`/`doSetup`/`restoreData` exactly — baking it into the port would have serialized each write separately, weakening a guarantee that matters for money correctness. Added 43 new use-case tests (`tests/unit/{transactions,closeDay,application-wallets,wipe,settings-usecases,sync,sms-import,backup,auth}.test.mjs`) against fake adapters in `tests/helpers/fakeAdapters.mjs`. All 77 tests pass; confirmed by grep that `application/*.js` only imports `domain/*.js` or other `application/*.js` files. `index.html` is still untouched. |
+| 2026-11-15 | 5 — Presentation and CSS split | Added `src/presentation/{store,router,dom,formatters}.js`, 6 view modules, 6 components, and `src/main.js` (composition root). Split the `<style>` block into `styles/{tokens,base,layout,components}.css` — verified byte-for-byte lossless via a script that compares the two rule sets (115 rules each, identical). Rewrote `index.html` as a thin shell: confirmed the `<body>` markup is **byte-identical** to the pre-refactor version (diffed programmatically), only the `<head>` (style `<link>`s) and the closing `<script>` tag (now `type="module" src="src/main.js"`) changed. `git diff index.html` was empty through phases 3-4 and only starts changing now, as this phase requires. Verified in a real, running headless Chrome (driven over the DevTools Protocol with Node's built-in `WebSocket` — `npx playwright install` was blocked by the sandbox, so this was the fallback) with the real `firebase-config.js` request intercepted to force local mode: booted cleanly, created and funded wallets, recorded a transaction (tiles/profit/wallet balance all matched the expected arithmetic exactly), voided it (fully reverted), closed a day, saved both settings cards, exported *and* restored a backup (restored wallet appeared with the exact balance from the test file), hit the login screen's empty-field validation path, and switched through every tab — zero console errors or exceptions across all of it. All 77 `node --test` cases still pass. `sw.js` is intentionally **not** updated yet (offline/precache is phase 6); until that phase, this branch's build is not offline-capable. Phone testing is still needed from the owner — noted in the summary. |
+| 2026-11-15 | 6 — Plumbing and instruction updates | Bumped `sw.js`'s `CACHE` to `daftar-v7` and added all 54 `src/`/`styles/` files to `FILES`. Added `scripts/check-precache.mjs` (walks `src/`+`styles/` on disk, fails if anything is missing from `sw.js`) — passes. Updated `build-apk.yml`'s copy step to `cp -r` both folders into `www/`. Rewrote `AGENTS.md`'s repo-layout table and hard rule 10 for the new layers, added the test/check commands to "Run locally", updated `CLAUDE.md`'s file-size note, and pointed `daftar-ui`/`daftar-ui-review`/`tokens.css` at `styles/`+`src/presentation/` instead of `index.html`. Verified "opens offline after the first load" with a real headless Chrome: loaded once online (service worker reached `activated`, cache held all 61 entries including `src/main.js`), then went fully offline (CDP `Network.emulateNetworkConditions`) and reloaded — the app still rendered with zero console errors. All 77 tests + the precache check pass. **Not done, and not mine to do:** merging `refactor/clean-arch` into `saeed-develop` — that's this phase's own ⛔ STOP, reserved for the owner. |

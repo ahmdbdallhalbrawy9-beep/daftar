@@ -21,9 +21,22 @@ wallet limits, profit, and the cash drawer.
 
 ## Repo layout
 
-| File | Role |
+Clean architecture, native ES modules, **still no build step**. `index.html` is a thin shell: markup,
+`<link>`s to `styles/*.css`, and one `<script type="module" src="src/main.js">`. The full layer-by-layer
+map (every function, every piece of state, where it lives and why) is `docs/ARCHITECTURE.md`; the
+pre-refactor snapshot of the old single-file app is `docs/inventory.md`.
+
+| Path | Role |
 |---|---|
-| `index.html` | The whole app: markup, `<style>` (design tokens + components), and one `<script>` IIFE |
+| `index.html` | Thin shell: markup + stylesheet links + the one module script tag |
+| `styles/` | `tokens.css` (design tokens, light/dark), `base.css`, `layout.css`, `components.css` — exactly the old `<style>` block's rules, split, not redesigned |
+| `src/domain/` | Pure logic: money/fees, limits, Cairo time/day-keys, split planning, wallet ranking, SMS parsing, number normalization. Imports nothing outside `domain/` |
+| `src/application/` | Use cases (record/void a tx, close day, manage wallets/settings, wipe, backup, SMS import, auth, sync) + JSDoc ports (`DbPort`, `AuthPort`, `SmsPort`, `ClockPort`) in `ports.js`. Never imports `infrastructure` |
+| `src/infrastructure/` | Adapters implementing those ports: Firestore, the local-DB fallback, Firebase Auth, the SMS plugin bridge, `localStorage`, file download/read, service worker registration, the install prompt |
+| `src/presentation/` | The store (reactive state, replaces the old `S`/`UI`/`changed()`), router, `dom.js`/`formatters.js`, `views/` (one per tab), `components/` (sheet, toast, pill, bars, txRow, pendingCard) |
+| `src/main.js` | Composition root: picks the local or Firestore adapter, wires every use case to it, mounts the views, owns the delegated click handler and the boot sequence. The only module allowed to import from every layer |
+| `tests/` | `node --test` suite: `unit/` (domain + application, real code against fake adapters), `helpers/fakeAdapters.mjs` |
+| `scripts/check-precache.mjs` | Fails if any file under `src/`/`styles/` is missing from `sw.js`'s `FILES` |
 | `sw.js` | Service worker. Caches app files + Firebase SDK for offline |
 | `manifest.webmanifest` | PWA manifest (`lang: ar`, `dir: rtl`, theme `#0d6b54`) |
 | `firebase-config.js` | Public Firebase web config (not a secret; security is in Firestore rules) |
@@ -31,16 +44,13 @@ wallet limits, profit, and the cash drawer.
 | `.github/workflows/build-apk.yml` | Manual (`workflow_dispatch`) debug APK build |
 
 There is **no build step, no bundler, no package.json**. Firebase compat SDK 10.12.2 loads from gstatic.
-
-> This single-file layout is **temporary**. Roadmap track 1 (phases 1–6) moves it to a clean architecture
-> (`src/domain`, `src/application`, `src/infrastructure`, `src/presentation`, `styles/`) with native ES modules
-> and still no build step. During that track, `docs/ARCHITECTURE.md` (once approved) overrides rule 10 below.
-> Phase 6 rewrites this section.
+Every `.js` file: plain JS, `// @ts-check` + JSDoc (no TypeScript compiler runs — it's for editor
+hints and documentation).
 
 ## Hard rules
 
 1. **Bump the cache on every shipped change.** Any change to a cached file → increment `CACHE` in `sw.js` (`daftar-vN` → `daftar-vN+1`), or installed phones keep the old version.
-2. **New files must be registered in two places:** the `FILES` array in `sw.js` and the `cp ...` line in `build-apk.yml`. Otherwise they will be missing offline and in the APK.
+2. **New files must be registered in two places:** the `FILES` array in `sw.js` and the `cp -r` lines in `build-apk.yml` (which copy all of `src/`/`styles/` — a new file inside an existing folder needs no workflow change, but a new top-level file does). Run `node scripts/check-precache.mjs` — it fails if anything under `src/`/`styles/` is missing from `sw.js`.
 3. **Don't change stored data shapes casually.** Ledger records, wallets, settings and closes are synced between devices and exist in users' backups. If a field must change, read the old shape too (backward compatible) — never break `restoreData` on old backup files.
 4. **Never break offline.** No runtime dependency on a CDN except the already-cached Firebase SDK. Fonts, icons, and images must be local files (and added per rule 2). Inline SVG is preferred for icons.
 5. **RTL first.** `<html lang="ar" dir="rtl">`. Use logical CSS properties (`margin-inline-start`, `padding-inline`, `inset-inline-end`, `text-align:start`). Never hard-code `left`/`right` for layout.
@@ -48,7 +58,7 @@ There is **no build step, no bundler, no package.json**. Firebase compat SDK 10.
 7. **Copy is Egyptian Arabic**, short and practical, matching the existing voice ("الزبون بيدّيني كاش وأنا أحوّل"). Don't switch to formal MSA or English in the UI.
 8. **Money logic is load-bearing.** `compute`, `buildPlan`, `rank`, `walletCost`, `xferCost`, `maxAmt`, `cd`, `wd` decide balances and profit. UI work must not change their behavior; if a change is required, state it explicitly and verify the totals before and after with the same inputs.
 9. **Destructive actions** (void a tx, wipe transactions, wipe all, restore backup) keep their confirmation step and the `--bad` styling.
-10. Keep the JS style of the file: one IIFE, `"use strict"`, `var`, small helpers (`$`, `$$`, `esc`). **Always `esc()` user text** before putting it in `innerHTML`.
+10. **Respect the layer boundaries** (see `docs/ARCHITECTURE.md` §1): `domain` imports nothing; `application` imports `domain` and its own `ports.js` shapes, never `infrastructure`; `infrastructure` implements those ports; `presentation` calls `application` use cases and never constructs a `db.collection(...)` call itself. Only `src/main.js` (the composition root) imports from every layer. New code goes in the layer it belongs to — new money/time/kind logic in `domain/`, a new user action in `application/` (+ an adapter in `infrastructure/` if it needs one), new markup/rendering in `presentation/`. **Always `esc()` user text** (from `presentation/formatters.js`) before putting it in `innerHTML`.
 
 ## UI work
 
@@ -60,11 +70,15 @@ For a bigger visual direction (redesign, new screen), `frontend-design` helps pi
 
 ```bash
 python3 -m http.server 8080   # then open http://localhost:8080
+node --test                   # the domain + application test suite
+node scripts/check-precache.mjs
 ```
 
 - Service workers need `localhost` or https. When testing CSS/JS changes, use DevTools → Application → "Update on reload", or bump `CACHE`.
 - Without Firebase reachable, the app falls back to the local DB.
 - Check the browser console: it should be free of errors on every tab.
+- `node --test tests/` fails on at least one Node install (`MODULE_NOT_FOUND` on the bare directory path,
+  reproducible even outside this repo); bare `node --test` uses the same default discovery and works.
 
 ## Git
 
