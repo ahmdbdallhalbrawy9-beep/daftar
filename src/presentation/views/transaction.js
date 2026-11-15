@@ -20,7 +20,7 @@ import { showTab } from '../router.js';
 
 /** Shared by the transaction and wallets tabs' service (vf/insta) switch. */
 export function svcHTML(state) {
-  return [['vf', 'فودافون كاش'], ['insta', 'إنستا باي']].map(function (x) {
+  return [['vf', 'فودافون كاش'], ['insta', 'إنستاباي']].map(function (x) {
     return '<button data-svc="' + x[0] + '" class="' + (state.ui.svc === x[0] ? 'on' : '') + '">' + x[1] + '</button>';
   }).join('');
 }
