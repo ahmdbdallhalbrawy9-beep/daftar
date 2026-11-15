@@ -6,7 +6,7 @@
 .sub{color:var(--muted);font-size:13px}
 .row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.row>label{flex:0 0 auto}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px}
 .seg button{padding:13px 8px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-weight:700;font-size:16px}
 .seg button.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .tab{display:none;flex-direction:column;gap:14px}.tab.on{display:flex}
