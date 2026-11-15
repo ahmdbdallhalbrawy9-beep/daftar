@@ -106,13 +106,13 @@ Fixed rules: native ES modules (`<script type="module">`) · **no bundler, no np
 
 Branch: `chore/github-automation` from `saeed-develop`. From here on, the agent runs the GitHub side of the work (see `AGENTS.md` → Git).
 
-- [ ] Check `gh` is installed and logged in (`gh auth status`) with push access to `ahmdbdallhalbrawy9-beep/daftar`. If not, stop and ask the owner to run `gh auth login`.
-- [ ] Sync: `main` has commits `saeed-develop` lacks (e.g. `README.md`). Merge `origin/main` into `saeed-develop` and push it.
-- [ ] `.github/workflows/ci.yml`: on every `pull_request` and on push to `saeed-develop` / `main` → Node 22, `node --test`, `node scripts/check-precache.mjs`.
-- [ ] `build-apk.yml`: keep `workflow_dispatch`, and also run on push to `main` and on PRs into `main`, so every release PR has a ready APK artifact to test.
-- [ ] Protect `main` with `gh api` (require a pull request + the CI check to pass). If the account lacks admin rights on the repo, don't fail the phase: report it and give the owner the exact click path (Settings → Branches → Add rule).
-- [ ] Mention `README.md` and the CI workflow in `AGENTS.md` → Repo layout.
-- [ ] Ship this phase itself through the flow: push → PR into `saeed-develop` → checks green → merge.
+- [x] Check `gh` is installed and logged in (`gh auth status`) with push access to `ahmdbdallhalbrawy9-beep/daftar`. If not, stop and ask the owner to run `gh auth login`.
+- [x] Sync: `main` has commits `saeed-develop` lacks (e.g. `README.md`). Merge `origin/main` into `saeed-develop` and push it.
+- [x] `.github/workflows/ci.yml`: on every `pull_request` and on push to `saeed-develop` / `main` → Node 22, `node --test`, `node scripts/check-precache.mjs`.
+- [x] `build-apk.yml`: keep `workflow_dispatch`, and also run on push to `main` and on PRs into `main`, so every release PR has a ready APK artifact to test.
+- [x] Protect `main` with `gh api` (require a pull request + the CI check to pass). If the account lacks admin rights on the repo, don't fail the phase: report it and give the owner the exact click path (Settings → Branches → Add rule). *(Got HTTP 404 on the branch-protection endpoint — this account has WRITE, not ADMIN, on the repo. Click path for the owner: repo → Settings → Branches → Add branch protection rule → branch name pattern `main` → check "Require a pull request before merging" and "Require status checks to pass before merging" → select the `test` check from `ci.yml` → Create.)*
+- [x] Mention `README.md` and the CI workflow in `AGENTS.md` → Repo layout.
+- [x] Ship this phase itself through the flow: push → PR into `saeed-develop` → checks green → merge.
 
 **Done when:** the CI check runs and passes on the PR · the PR is merged into `saeed-develop` · `saeed-develop` contains everything from `main`.
 No stop here — continue to Phase 7.

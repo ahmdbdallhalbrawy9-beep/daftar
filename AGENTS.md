@@ -41,7 +41,9 @@ pre-refactor snapshot of the old single-file app is `docs/inventory.md`.
 | `manifest.webmanifest` | PWA manifest (`lang: ar`, `dir: rtl`, theme `#0d6b54`) |
 | `firebase-config.js` | Public Firebase web config (not a secret; security is in Firestore rules) |
 | `icon-*.png` | App icons |
-| `.github/workflows/build-apk.yml` | Manual (`workflow_dispatch`) debug APK build |
+| `.github/workflows/build-apk.yml` | Debug APK build — manual (`workflow_dispatch`), and automatic on push/PR into `main` |
+| `.github/workflows/ci.yml` | `node --test` + `node scripts/check-precache.mjs` on every PR and on push to `saeed-develop`/`main` |
+| `README.md` | Minimal GitHub landing page |
 
 There is **no build step, no bundler, no package.json**. Firebase compat SDK 10.12.2 loads from gstatic.
 Every `.js` file: plain JS, `// @ts-check` + JSDoc (no TypeScript compiler runs — it's for editor
