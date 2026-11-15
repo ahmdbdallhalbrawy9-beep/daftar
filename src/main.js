@@ -64,6 +64,7 @@ function renderAll() {
   var state = store.getState();
   var C = currentCompute();
   renderSyncPill($('#syncPill'), state);
+  renderSyncPill($('#syncPillWide'), state);
   $('#dateLine').textContent = new Date().toLocaleDateString('ar-EG-u-nu-latn', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long' });
   renderTx(store, C);
   renderWallets(store, C);
