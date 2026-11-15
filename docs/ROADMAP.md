@@ -147,7 +147,7 @@ Not allowed: changing any calculation or data shape. Font: the system font stack
 **Done when:** no horizontal scroll at 360px · navigation is correct at all 3 sizes.
 ⛔ **STOP** — open a release PR `saeed-develop → main` (its APK builds automatically), give the owner the PR link and the APK artifact link, and wait. The owner checks the look on the phone. *(Deferred 2026-11-15 on the owner's explicit instruction for this run: one release PR covering phases 7–11 together at the very end, not one per phase. Continued straight to phase 9.)*
 
-### Phase 9 — Components ⬜
+### Phase 9 — Components 🔄
 
 - [ ] Buttons, segmented controls, operation-kind choice cards, chips, fields (label + hint + error), the amount input, tiles, wallet cards with limit bars, transaction rows, notices, the sheet (bottom sheet on phone, centered dialog ≥ 640px), toast, empty states, loading skeletons — per `components.md`.
 - [ ] Every component: hover / focus / pressed / disabled / selected, in both themes.
