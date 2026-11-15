@@ -8,6 +8,9 @@ html{direction:rtl}
 body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5;
   padding-block:12px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   -webkit-tap-highlight-color:transparent}
+/* Clear the bottom bar only on phones; clear the rail/sidebar on wider screens instead. */
+@media (min-width:640px){body{padding-block:24px;padding-inline-start:calc(var(--rail-w) + 16px)}}
+@media (min-width:1024px){body{padding-inline-start:calc(var(--sidebar-w) + 24px)}}
 h1{font-size:20px;margin:0;font-weight:700}
 h2{font-size:13px;margin:6px 2px -4px;color:var(--muted);font-weight:600;letter-spacing:.02em}
 p{margin:0}

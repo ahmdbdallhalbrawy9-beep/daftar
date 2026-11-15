@@ -6,6 +6,11 @@ import { $$ } from './dom.js';
 export function showTab(store, t) {
   store.patchUI({ tab: t });
   $$('.tab').forEach(function (s) { s.classList.toggle('on', s.id === 'tab-' + t); });
-  $$('nav button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+  $$('nav button').forEach(function (b) {
+    var active = b.dataset.t === t;
+    b.classList.toggle('on', active);
+    if (active) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
   window.scrollTo(0, 0);
 }

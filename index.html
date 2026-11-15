@@ -19,6 +19,23 @@
 </head>
 <body>
 
+<svg hidden aria-hidden="true"><defs>
+  <symbol id="i-tx" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 7h11l-3-3m3 3l-3 3"/><path d="M17 17H6l3 3m-3-3l3-3"/>
+  </symbol>
+  <symbol id="i-wallets" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1"/>
+  </symbol>
+  <symbol id="i-day" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9.5h18"/><path d="M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.5"/>
+  </symbol>
+  <symbol id="i-hist" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>
+  </symbol>
+  <symbol id="i-set" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M3.5 12h3M17.5 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
+  </symbol>
+</defs></svg>
 
 <div class="app">
   <header class="top">
@@ -27,6 +44,7 @@
   </header>
 
   <section id="tab-tx" class="tab on">
+    <div class="page-head"><div><h2 class="page-title">عملية</h2><p class="sub">سجّل عملية جديدة في ثوانٍ</p></div></div>
     <div id="setup"></div>
     <div id="notice"></div>
     <div id="guideBox"></div>
@@ -68,7 +86,7 @@
   </section>
 
   <section id="tab-wallets" class="tab">
-    <div class="row" style="justify-content:space-between"><h2 style="margin:0">كل المحافظ</h2><button class="ghost" id="addWallet" style="flex:0 0 auto">+ محفظة</button></div>
+    <div class="page-head"><div><h2 class="page-title">المحافظ</h2><p class="sub">كل المحافظ وأرصدتها</p></div><button class="ghost" id="addWallet" style="flex:0 0 auto">+ محفظة</button></div>
     <p class="small">الليميت اليومي بيتجدد 12 بالليل، والشهري أول كل شهر الساعة 12، بتوقيت القاهرة.</p>
     <div class="seg" id="svcW"></div>
     <div class="small num" id="wTotal"></div>
@@ -76,6 +94,7 @@
   </section>
 
   <section id="tab-day" class="tab">
+    <div class="page-head"><div><h2 class="page-title">اليوم</h2><p class="sub">أرباح النهارده والجرد</p></div></div>
     <div id="bkNotice"></div>
     <div id="openCard"></div>
     <div class="grid" id="tiles"></div>
@@ -98,6 +117,7 @@
   </section>
 
   <section id="tab-hist" class="tab">
+    <div class="page-head"><div><h2 class="page-title">السجل</h2><p class="sub">عمليات الأيام اللي فاتت</p></div></div>
     <div class="card">
       <b>سجل العمليات</b>
       <div class="row"><button class="ghost" id="hPrev" style="flex:0 0 auto">السابق</button><input type="date" id="hDate"><button class="ghost" id="hNext" style="flex:0 0 auto">التالي</button></div>
@@ -110,6 +130,7 @@
   </section>
 
   <section id="tab-set" class="tab">
+    <div class="page-head"><div><h2 class="page-title">إعدادات</h2><p class="sub">الأسعار، النسخ الاحتياطي، والحساب</p></div></div>
     <div class="card">
       <b>المظهر</b>
       <div class="seg" id="themeSeg">
@@ -199,13 +220,19 @@
   </section>
 </div>
 
-<nav><div class="in">
-  <button data-t="tx" class="on">عملية</button>
-  <button data-t="wallets">المحافظ</button>
-  <button data-t="day">اليوم</button>
-  <button data-t="hist">السجل</button>
-  <button data-t="set">إعدادات</button>
-</div></nav>
+<nav>
+  <div class="nav-head">
+    <b>دفتر المحفظة</b>
+    <span class="pill warn" id="syncPillWide">جارٍ الاتصال…</span>
+  </div>
+  <div class="in">
+    <button data-t="tx" class="on" aria-current="page"><svg class="i"><use href="#i-tx"></use></svg><span>عملية</span></button>
+    <button data-t="wallets"><svg class="i"><use href="#i-wallets"></use></svg><span>المحافظ</span></button>
+    <button data-t="day"><svg class="i"><use href="#i-day"></use></svg><span>اليوم</span></button>
+    <button data-t="hist"><svg class="i"><use href="#i-hist"></use></svg><span>السجل</span></button>
+    <button data-t="set"><svg class="i"><use href="#i-set"></use></svg><span>إعدادات</span></button>
+  </div>
+</nav>
 <div id="auth" hidden><div class="box">
   <h1>دفتر المحفظة</h1>
   <p class="sub">سجّل دخول بحسابك عشان بياناتك تظهر على أي موبايل. محتاج نت أول مرة بس، وبعدها يشتغل بدون نت.</p>
