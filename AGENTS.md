@@ -45,6 +45,20 @@ pre-refactor snapshot of the old single-file app is `docs/inventory.md`.
 | `.github/workflows/ci.yml` | `node --test` + `node scripts/check-precache.mjs` on every PR and on push to `saeed-develop`/`main` |
 | `README.md` | Minimal GitHub landing page |
 
+### Where to find a built APK
+
+`build-apk.yml` publishes to GitHub Releases (not just the zipped workflow artifact, which needs an
+extra unzip step):
+
+- **Push to `main`** → a new release tagged `v1.<run number>`, APK attached as `daftar-v1.<N>.apk`,
+  with auto-generated release notes. Only the latest 5 `v1.*` releases are kept; older ones are deleted
+  automatically.
+- **Any PR into `main`, or a manual `workflow_dispatch` run** → the single rolling pre-release tagged
+  `preview` gets its `daftar-preview.apk` asset replaced. The release page URL and the asset's direct
+  download URL never change, so that link always serves the latest test build.
+- The zipped `daftar-apk` workflow artifact (Actions tab) is also still produced on every run, as a
+  harmless backup — prefer the release download link day to day.
+
 There is **no build step, no bundler, no package.json**. Firebase compat SDK 10.12.2 loads from gstatic.
 Every `.js` file: plain JS, `// @ts-check` + JSDoc (no TypeScript compiler runs — it's for editor
 hints and documentation).
