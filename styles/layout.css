@@ -2,6 +2,8 @@
    service switch, the login screen, the two-column field grid. Extracted
    from index.html's <style> block unchanged. */
 .app{max-width:560px;margin-inline:auto;display:flex;flex-direction:column;gap:14px}
+@media (min-width:640px){.app{max-width:720px}}
+@media (min-width:1024px){.app{max-width:var(--content-max-wide)}}
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .sub{color:var(--muted);font-size:13px}
 /* Per-tab page header: title + short subtitle (+ optional action). The global
@@ -12,10 +14,9 @@
 @media (min-width:640px){.top{display:none}}
 .row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.row>label{flex:0 0 auto}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px}
-.seg button{padding:13px 8px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-weight:700;font-size:16px}
-.seg button.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .tab{display:none;flex-direction:column;gap:14px}.tab.on{display:flex}
+/* Note: .seg's own rules (track/selected states) live in components.css —
+   it's a component, not page structure. Kept here only as layout glue. */
 /* Nav: one element, restyled by width — bottom bar (<640px, default) / rail
    (640-1023px) / sidebar (>=1024px). Never duplicated per breakpoint. */
 nav{position:fixed;z-index:5;background:var(--surface)}
@@ -58,3 +59,20 @@ nav button{flex-direction:column;padding:9px 2px;font-size:var(--fs-xs);min-heig
 #auth h1{font-size:26px}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.f2>div{display:flex;flex-direction:column;gap:4px;min-width:0}
 @media (prefers-reduced-motion:no-preference){.tab.on{animation:fade .15s ease-out}@keyframes fade{from{opacity:.4}to{opacity:1}}}
+
+/* Two-column desktop screens (عملية, اليوم): main content + a narrower aside,
+   stacked normally below 1024px. `.reverse` swaps which side is narrow
+   (اليوم wants the compact close-card narrow and the operations list wide). */
+.screen-main,.screen-aside{display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (min-width:1024px){
+  .screen-split{display:grid;grid-template-columns:1fr 360px;gap:var(--sp-6);align-items:start}
+  .screen-split.reverse{grid-template-columns:360px 1fr}
+  .screen-aside.sticky{position:sticky;top:var(--sp-6)}
+}
+
+/* المحافظ: auto-fill card grid instead of a forced single column. */
+@media (min-width:640px){#wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}}
+
+/* إعدادات danger zone: grouped last, visually separated with a bad-tinted label. */
+.danger-zone{display:flex;flex-direction:column;gap:14px;margin-top:var(--sp-2);padding-top:var(--sp-4);border-top:2px solid var(--bad-soft)}
+.danger-zone h2{color:var(--bad);margin:0}

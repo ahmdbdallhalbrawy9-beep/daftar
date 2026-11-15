@@ -50,43 +50,49 @@
     <div id="guideBox"></div>
     <div id="openBanner"></div>
     <div id="pendBox"></div>
-    <div class="seg" id="svcTx"></div>
-    <div class="kinds" id="kinds">
-      <button class="kind on" data-k="out" data-s="v"><b>تحويل</b><small>محافظ · الزبون بيدّيني كاش وأنا أحوّل</small></button>
-      <button class="kind" data-k="in" data-s="v"><b>سحب</b><small>محافظ · الزبون بيحوّل لي وأنا أدّيه كاش</small></button>
-      <button class="kind" data-k="iout" data-s="i"><b>تحويل إنستاباي</b><small>الزبون بيدّيني كاش وأنا أحوّل</small></button>
-      <button class="kind" data-k="iin" data-s="i"><b>سحب إنستاباي</b><small>الزبون بيحوّل لي وأنا أدّيه كاش</small></button>
-      <button class="kind mini" data-k="topup" data-s="v">تعبئة محفظة بكاش</button>
-      <button class="kind mini" data-k="cashout" data-s="v">سحب كاش من محفظة</button>
-      <button class="kind mini" data-k="itopup" data-s="i">إيداع في إنستاباي</button>
-      <button class="kind mini" data-k="icashout" data-s="i">سحب كاش من إنستاباي</button>
-    </div>
-    <div class="card">
-      <label for="amt">المبلغ (جنيه)</label>
-      <input id="amt" class="big" inputmode="decimal" autocomplete="off" placeholder="0">
-      <div id="feeRow" style="display:flex;flex-direction:column;gap:8px">
-        <div class="row"><label for="fee" id="feeLbl">العمولة (جنيه)</label><input id="fee" inputmode="decimal" autocomplete="off" placeholder="0"></div>
-        <div class="chips" id="pcts"></div>
+    <div class="screen-split">
+      <div class="screen-main">
+        <div class="seg" id="svcTx"></div>
+        <div class="kinds" id="kinds">
+          <button class="kind on" data-k="out" data-s="v"><b>تحويل</b><small>محافظ · الزبون بيدّيني كاش وأنا أحوّل</small></button>
+          <button class="kind" data-k="in" data-s="v"><b>سحب</b><small>محافظ · الزبون بيحوّل لي وأنا أدّيه كاش</small></button>
+          <button class="kind" data-k="iout" data-s="i"><b>تحويل إنستاباي</b><small>الزبون بيدّيني كاش وأنا أحوّل</small></button>
+          <button class="kind" data-k="iin" data-s="i"><b>سحب إنستاباي</b><small>الزبون بيحوّل لي وأنا أدّيه كاش</small></button>
+          <button class="kind mini" data-k="topup" data-s="v">تعبئة محفظة بكاش</button>
+          <button class="kind mini" data-k="cashout" data-s="v">سحب كاش من محفظة</button>
+          <button class="kind mini" data-k="itopup" data-s="i">إيداع في إنستاباي</button>
+          <button class="kind mini" data-k="icashout" data-s="i">سحب كاش من إنستاباي</button>
+        </div>
+        <div class="card">
+          <label for="amt">المبلغ (جنيه)</label>
+          <input id="amt" class="big" inputmode="decimal" autocomplete="off" placeholder="0">
+          <div id="feeRow" style="display:flex;flex-direction:column;gap:8px">
+            <div class="row"><label for="fee" id="feeLbl">العمولة (جنيه)</label><input id="fee" inputmode="decimal" autocomplete="off" placeholder="0"></div>
+            <div class="chips" id="pcts"></div>
+          </div>
+          <div id="costRow" style="display:none;flex-direction:column;gap:8px">
+            <div class="row" id="costInp"><label for="cost">رسوم المحفظة (بتتخصم منك)</label><input id="cost" inputmode="decimal" autocomplete="off" placeholder="0"></div>
+            <div class="chips" id="dest"></div>
+          </div>
+          <div id="splitWrap" style="display:none;flex-direction:column;gap:6px"><div class="small">طريقة التنفيذ</div><div class="chips" id="smodes"></div></div>
+          <div id="splitBox" style="display:none;flex-direction:column;gap:8px"></div>
+        </div>
+        <div class="card">
+          <label for="note">ملاحظة (اختياري)</label>
+          <input id="note" autocomplete="off" placeholder="اسم الزبون أو آخر أرقام من رقمه">
+          <button id="save" class="btn-primary" disabled>تسجيل العملية</button>
+        </div>
       </div>
-      <div id="costRow" style="display:none;flex-direction:column;gap:8px">
-        <div class="row" id="costInp"><label for="cost">رسوم المحفظة (بتتخصم منك)</label><input id="cost" inputmode="decimal" autocomplete="off" placeholder="0"></div>
-        <div class="chips" id="dest"></div>
+      <div class="screen-aside sticky">
+        <div id="sum" class="sum"></div>
+        <h2 id="pickTitle">المحفظة المقترحة</h2>
+        <div id="picker" class="picker"></div>
       </div>
-      <div id="splitWrap" style="display:none;flex-direction:column;gap:6px"><div class="small">طريقة التنفيذ</div><div class="chips" id="smodes"></div></div>
-      <div id="splitBox" style="display:none;flex-direction:column;gap:8px"></div>
-      <div id="sum" class="sum"></div>
-    </div>
-    <h2 id="pickTitle">المحفظة المقترحة</h2>
-    <div id="picker" class="picker"></div>
-    <div class="card">
-      <label for="note">ملاحظة (اختياري)</label>
-      <input id="note" autocomplete="off" placeholder="اسم الزبون أو آخر أرقام من رقمه">
-      <button id="save" class="btn-primary" disabled>تسجيل العملية</button>
     </div>
   </section>
 
   <section id="tab-wallets" class="tab">
-    <div class="page-head"><div><h2 class="page-title">المحافظ</h2><p class="sub">كل المحافظ وأرصدتها</p></div><button class="btn" id="addWallet" style="flex:0 0 auto">+ محفظة</button></div>
+    <div class="page-head"><div><h2 class="page-title">المحافظ</h2><p class="sub">كل المحافظ وأرصدتها</p></div><button class="btn-primary" id="addWallet" style="flex:0 0 auto;padding:10px 18px;min-height:44px">+ محفظة</button></div>
     <p class="small">الليميت اليومي بيتجدد 12 بالليل، والشهري أول كل شهر الساعة 12، بتوقيت القاهرة.</p>
     <div class="seg" id="svcW"></div>
     <div class="small num" id="wTotal"></div>
@@ -98,22 +104,26 @@
     <div id="bkNotice"></div>
     <div id="openCard"></div>
     <div class="grid" id="tiles"></div>
-    <div class="card">
-      <b>الجرد والإقفال</b>
-      <p class="small">أول مرة؟ اكتب النقدي وأرصدة محافظك الحالية واضغط حفظ. بعد كده كل يوم اكتب اللي معدود فعلاً، والباقي بيتحسب لوحده. أي خانة فاضية بتتاخد زي المتوقع.</p>
-      <div class="inv" style="border-top:0">
-        <div><b>النقدي في الدرج</b><small>المتوقع <span id="expCash" class="num"></span></small></div>
-        <input id="invCash" inputmode="decimal" autocomplete="off" placeholder="الفعلي">
-        <span class="diff" id="diffCash"></span>
+    <div class="screen-split reverse">
+      <div class="card">
+        <b>الجرد والإقفال</b>
+        <p class="small">أول مرة؟ اكتب النقدي وأرصدة محافظك الحالية واضغط حفظ. بعد كده كل يوم اكتب اللي معدود فعلاً، والباقي بيتحسب لوحده. أي خانة فاضية بتتاخد زي المتوقع.</p>
+        <div class="inv" style="border-top:0">
+          <div><b>النقدي في الدرج</b><small>المتوقع <span id="expCash" class="num"></span></small></div>
+          <input id="invCash" inputmode="decimal" autocomplete="off" placeholder="الفعلي">
+          <span class="diff" id="diffCash"></span>
+        </div>
+        <div id="invRows"></div>
+        <button class="btn-primary" id="closeBtn">حفظ الجرد وإقفال اليوم</button>
       </div>
-      <div id="invRows"></div>
-      <button class="btn-primary" id="closeBtn">حفظ الجرد وإقفال اليوم</button>
+      <div class="screen-aside">
+        <h2>عمليات اليوم</h2>
+        <div class="chips" id="fltChips"></div>
+        <div class="card" id="txList" style="gap:0"></div>
+        <h2>آخر إقفالات</h2>
+        <div class="card" id="closeList" style="gap:0"></div>
+      </div>
     </div>
-    <h2>عمليات اليوم</h2>
-    <div class="chips" id="fltChips"></div>
-    <div class="card" id="txList" style="gap:0"></div>
-    <h2>آخر إقفالات</h2>
-    <div class="card" id="closeList" style="gap:0"></div>
   </section>
 
   <section id="tab-hist" class="tab">
@@ -169,35 +179,15 @@
       <p class="small" id="smsInfo"></p>
       <button class="btn" id="smsScan">فحص الرسائل الآن</button>
     </div>
-    <div class="card">
-      <b>مسح المعاملات</b>
-      <p class="small">بيمسح كل العمليات وسجل الإقفالات من كل الموبايلات. المحافظ وأرصدتها الحالية والنقدي في الدرج بيفضلوا زي ما هم، وتبدأ منهم من جديد.</p>
-      <button class="btn-danger" id="wipeBtn">مسح كل المعاملات</button>
-    </div>
-    <div class="card">
-      <b>مسح جميع البيانات</b>
-      <p class="small">بيمسح كل حاجة: المحافظ والعمليات والإقفالات والإعدادات، وبيرجّع الدفتر فاضي. محتاج كلمة سر. كلمة السر بتمنع الضغط بالغلط، مش حماية قوية ضد حد عنده صلاحية على الدفتر.</p>
-      <div id="pwSetBox" style="display:flex;flex-direction:column;gap:8px">
-        <label for="pwNew">حدد كلمة سر للمسح (4 حروف أو أرقام على الأقل)</label>
-        <input id="pwNew" type="password" autocomplete="off">
-        <button class="btn" id="pwSet">تعيين كلمة السر</button>
-      </div>
-      <div id="pwUseBox" style="display:flex;flex-direction:column;gap:8px" hidden>
-        <label for="pwIn">كلمة السر</label>
-        <input id="pwIn" type="password" autocomplete="off">
-        <button class="btn-danger" id="wipeAll">مسح جميع البيانات</button>
-        <details><summary class="small">تغيير كلمة السر</summary>
-          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-            <input id="pwOld" type="password" autocomplete="off" placeholder="كلمة السر الحالية">
-            <input id="pwNew2" type="password" autocomplete="off" placeholder="كلمة السر الجديدة">
-            <button class="btn" id="pwChange">تغيير</button>
-          </div></details>
-      </div>
-    </div>
     <div class="card" id="acctCard" hidden>
       <b>الحساب</b>
       <p class="small" id="acctEmail"></p>
       <button class="btn" id="logoutBtn">تسجيل الخروج</button>
+    </div>
+    <div class="card">
+      <b>مكان البيانات</b>
+      <p class="small" id="syncInfo"></p>
+      <p class="small">رمز الجهاز: <span class="num" id="devId"></span></p>
     </div>
     <div class="card" id="installCard" hidden>
       <b>تثبيت التطبيق</b>
@@ -212,10 +202,33 @@
       <input id="bkFile" type="file" accept=".json,application/json" hidden>
       <button class="btn-danger" id="bkConfirm" hidden>تأكيد: استبدال كل البيانات الحالية بالنسخة</button>
     </div>
-    <div class="card">
-      <b>مكان البيانات</b>
-      <p class="small" id="syncInfo"></p>
-      <p class="small">رمز الجهاز: <span class="num" id="devId"></span></p>
+    <div class="danger-zone">
+      <h2>منطقة الخطر</h2>
+      <div class="card">
+        <b>مسح المعاملات</b>
+        <p class="small">بيمسح كل العمليات وسجل الإقفالات من كل الموبايلات. المحافظ وأرصدتها الحالية والنقدي في الدرج بيفضلوا زي ما هم، وتبدأ منهم من جديد.</p>
+        <button class="btn-danger" id="wipeBtn">مسح كل المعاملات</button>
+      </div>
+      <div class="card">
+        <b>مسح جميع البيانات</b>
+        <p class="small">بيمسح كل حاجة: المحافظ والعمليات والإقفالات والإعدادات، وبيرجّع الدفتر فاضي. محتاج كلمة سر. كلمة السر بتمنع الضغط بالغلط، مش حماية قوية ضد حد عنده صلاحية على الدفتر.</p>
+        <div id="pwSetBox" style="display:flex;flex-direction:column;gap:8px">
+          <label for="pwNew">حدد كلمة سر للمسح (4 حروف أو أرقام على الأقل)</label>
+          <input id="pwNew" type="password" autocomplete="off">
+          <button class="btn" id="pwSet">تعيين كلمة السر</button>
+        </div>
+        <div id="pwUseBox" style="display:flex;flex-direction:column;gap:8px" hidden>
+          <label for="pwIn">كلمة السر</label>
+          <input id="pwIn" type="password" autocomplete="off">
+          <button class="btn-danger" id="wipeAll">مسح جميع البيانات</button>
+          <details><summary class="small">تغيير كلمة السر</summary>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+              <input id="pwOld" type="password" autocomplete="off" placeholder="كلمة السر الحالية">
+              <input id="pwNew2" type="password" autocomplete="off" placeholder="كلمة السر الجديدة">
+              <button class="btn" id="pwChange">تغيير</button>
+            </div></details>
+        </div>
+      </div>
     </div>
   </section>
 </div>

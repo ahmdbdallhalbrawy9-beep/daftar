@@ -28,7 +28,7 @@ export function renderWallets(store, C) {
   }
   g.innerHTML = list.map(function (w) {
     var x = C.W[w.id], dl = w.dayLimit || state.settings.defDay, ml = w.monthLimit || state.settings.defMon;
-    return '<button class="wcard' + (w.active === false ? ' off' : '') + '" data-edit="' + esc(w.id) + '" style="grid-column:1/-1"><div class="l1" style="display:flex;justify-content:space-between;align-items:baseline"><b>' + esc(w.name) + (w.type === 'insta' ? ' <span class="tag">إنستاباي</span>' : '') + (w.active === false ? ' <span class="tag">متوقفة</span>' : '') + '</b><span class="bal">' + fmt(x.bal) + '</span></div>' +
+    return '<button class="wcard' + (w.active === false ? ' off' : '') + '" data-edit="' + esc(w.id) + '"><div class="l1" style="display:flex;justify-content:space-between;align-items:baseline"><b>' + esc(w.name) + (w.type === 'insta' ? ' <span class="tag">إنستاباي</span>' : '') + (w.active === false ? ' <span class="tag">متوقفة</span>' : '') + '</b><span class="bal">' + fmt(x.bal) + '</span></div>' +
       (w.phone ? '<div class="small num">' + esc(w.phone) + '</div>' : '') + limBar('اليوم', x.dIn, x.dOut, dl) + limBar('الشهر', x.mIn, x.mOut, ml) + '</button>';
   }).join('');
 }
