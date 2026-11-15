@@ -4,7 +4,7 @@
 // index.html's `renderSet` plus the settings-related branches of its click
 // delegation handler (`saveRates`/`saveSet`/`pwSet`/`pwChange`/`wipeAll`/
 // `doWipe`/`bkExport`/`#bkFile` change/`bkConfirm`/`logoutBtn`/`installBtn`).
-import { $ } from '../dom.js';
+import { $, $$ } from '../dom.js';
 import { toast } from '../components/toast.js';
 import { getItem, setItem } from '../../infrastructure/storage.js';
 import { triggerDownload, readFileAsText } from '../../infrastructure/download.js';
@@ -16,6 +16,7 @@ import { wipeAllData, wipeTransactions } from '../../application/wipe.js';
 import { exportBackup, restoreBackup } from '../../application/backup.js';
 import { logout } from '../../application/auth.js';
 import { showTab } from '../router.js';
+import { getThemeChoice, applyTheme } from '../theme.js';
 
 /**
  * @param {ReturnType<typeof import('../store.js').createStore>} store
@@ -23,6 +24,8 @@ import { showTab } from '../router.js';
  */
 export function renderSet(store, deviceId) {
   var state = store.getState();
+  var themeChoice = getThemeChoice() || 'auto';
+  $$('#themeSeg button').forEach(function (b) { b.classList.toggle('on', b.dataset.themeChoice === themeChoice); });
   var ae = document.activeElement;
   if (!(ae && /^set(Fee|FeeI|FeeC|FeeF|Day|Mon|VfS|VfOP|VfOC|InP|InC)$/.test(ae.id))) {
     $('#setFee').value = state.settings.feePct; $('#setFeeI').value = state.settings.feePctI;
@@ -170,4 +173,13 @@ export async function logoutAction(store, ctx) {
 export function installAction(store) {
   var inst = store.getState().ui.inst;
   if (inst) { inst.prompt(); store.patchUI({ inst: null }); }
+}
+
+/**
+ * @param {ReturnType<typeof import('../store.js').createStore>} store
+ * @param {'auto'|'light'|'dark'} choice
+ */
+export function setThemeAction(store, choice) {
+  applyTheme(choice === 'auto' ? null : choice);
+  store.notify();
 }
