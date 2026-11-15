@@ -164,7 +164,7 @@ Not allowed: changing any calculation or data shape. Font: the system font stack
 
 **Done when:** each screen has exactly one primary button · same numbers before and after for the same inputs.
 
-### Phase 11 — Review and release ⬜
+### Phase 11 — Review and release 🔄
 
 - [ ] Full `daftar-ui-review` matrix: 360 / 412 / 768 / 1280 × light / dark, plus 130% font size.
 - [ ] Fix everything found.
