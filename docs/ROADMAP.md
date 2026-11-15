@@ -11,7 +11,7 @@ This is the plan every agent (Claude Code or any other) follows. **One phase per
 5. A phase is done only when **every "Done when" item** is verified. If one fails, the phase is still in progress.
 6. When done: set the phase status to ✅ and add a row to the **Progress log** at the bottom (date, what was done, anything notable).
 7. At a **⛔ STOP**: stop completely. Give a short summary in Egyptian Arabic and list what the owner needs to try or approve. Do not start the next phase.
-8. **Never `git push`.** The owner pushes and merges.
+8. **GitHub flow:** follow the Git section of `AGENTS.md` — push the phase branch, open a PR into `saeed-develop`, wait for green checks, merge it. Never push to `main`; a release PR into `main` is merged only when the owner says so.
 9. If something in this roadmap looks wrong or missing, don't change it on your own. Raise it as a suggestion in the summary at the next stop.
 
 Status: ⬜ not started · 🔄 in progress · ✅ done
@@ -100,7 +100,22 @@ Fixed rules: native ES modules (`<script type="module">`) · **no bundler, no np
 - [x] Update `AGENTS.md` (structure, layers, how to run tests and the check, where new code goes, remove the single-file constraint), `CLAUDE.md`, and the `daftar-ui` / `daftar-ui-review` skills so they point to `styles/` and `presentation/` instead of `index.html`.
 
 **Done when:** `node --test tests/` and `node scripts/check-precache.mjs` pass · the app opens offline after the first load.
-⛔ **STOP** — the owner reviews and merges `refactor/clean-arch` into `saeed-develop`.
+⛔ **STOP** — the owner reviews and merges `refactor/clean-arch` into `saeed-develop`. *(Done 2026-11-15: merged and pushed.)*
+
+### Phase 6.5 — GitHub automation ⬜
+
+Branch: `chore/github-automation` from `saeed-develop`. From here on, the agent runs the GitHub side of the work (see `AGENTS.md` → Git).
+
+- [ ] Check `gh` is installed and logged in (`gh auth status`) with push access to `ahmdbdallhalbrawy9-beep/daftar`. If not, stop and ask the owner to run `gh auth login`.
+- [ ] Sync: `main` has commits `saeed-develop` lacks (e.g. `README.md`). Merge `origin/main` into `saeed-develop` and push it.
+- [ ] `.github/workflows/ci.yml`: on every `pull_request` and on push to `saeed-develop` / `main` → Node 22, `node --test`, `node scripts/check-precache.mjs`.
+- [ ] `build-apk.yml`: keep `workflow_dispatch`, and also run on push to `main` and on PRs into `main`, so every release PR has a ready APK artifact to test.
+- [ ] Protect `main` with `gh api` (require a pull request + the CI check to pass). If the account lacks admin rights on the repo, don't fail the phase: report it and give the owner the exact click path (Settings → Branches → Add rule).
+- [ ] Mention `README.md` and the CI workflow in `AGENTS.md` → Repo layout.
+- [ ] Ship this phase itself through the flow: push → PR into `saeed-develop` → checks green → merge.
+
+**Done when:** the CI check runs and passes on the PR · the PR is merged into `saeed-develop` · `saeed-develop` contains everything from `main`.
+No stop here — continue to Phase 7.
 
 ---
 
@@ -110,7 +125,7 @@ Goal: a clean, clear, easy interface: organized navigation (bottom bar on phone,
 
 Before any phase here: **load the `daftar-ui` skill** and read `references/tokens.css` and `references/components.md`. Use `frontend-design` only for visual decisions the spec doesn't cover; `daftar-ui` wins on conflicts. Run the `daftar-ui-review` skill after every phase.
 
-Branch: `ui/redesign` from `saeed-develop` (after Track 1 is merged).
+Branches: one per phase, each from the latest `saeed-develop` and merged back through a PR when the phase is done: `ui/p7-theme`, `ui/p8-shell`, `ui/p9-components`, `ui/p10-screens`, `ui/p11-review`.
 Not allowed: changing any calculation or data shape. Font: the system font stack from `tokens.css` (no font files for now).
 
 ### Phase 7 — Foundation: colors and theme ⬜
@@ -130,7 +145,7 @@ Not allowed: changing any calculation or data shape. Font: the system font stack
 - [ ] Sync status moves into the sidebar/rail on wide screens.
 
 **Done when:** no horizontal scroll at 360px · navigation is correct at all 3 sizes.
-⛔ **STOP** — the owner checks the look on the phone.
+⛔ **STOP** — open a release PR `saeed-develop → main` (its APK builds automatically), give the owner the PR link and the APK artifact link, and wait. The owner checks the look on the phone.
 
 ### Phase 9 — Components ⬜
 
@@ -156,7 +171,7 @@ Not allowed: changing any calculation or data shape. Font: the system font stack
 - [ ] Bump `CACHE`, run the tests and the precache check.
 
 **Done when:** the review passes and the console is clean.
-⛔ **STOP** — the owner merges into `saeed-develop`, pushes, builds the APK from GitHub Actions, and tests it on the phone.
+⛔ **STOP** — open (or update) the release PR `saeed-develop → main`, share the PR and APK links, and merge it only when the owner says so.
 
 ---
 
@@ -171,3 +186,4 @@ Not allowed: changing any calculation or data shape. Font: the system font stack
 | 2026-11-15 | 4 — Application and infrastructure | Added `src/application/{ports,transactions,closeDay,wallets,settingsUseCases,wipe,openingCash,smsImport,backup,sync,auth}.js` and `src/infrastructure/{storage,deviceId,crypto,writeQueue,localDb,firestoreDb,firebaseAuth,smsPlugin,download,serviceWorker,install}.js`. Two implementation-time corrections to the phase 2 plan, both noted in `docs/ARCHITECTURE.md`: `rid` moved from the planned `infrastructure/deviceId.js` to `domain/ids.js` (application needs it and must never import infrastructure); and `queue` (the write-serializing function) is passed into every writing use case as an explicit parameter rather than baked into the `DbPort`, so multi-step operations (`closeDay`, `wipeAllData`, `wipeTransactions`, `setupWallets`, `restoreBackup`) still run as one atomic serialized block, matching index.html's `doClose`/`wipeAll`/`doWipe`/`doSetup`/`restoreData` exactly — baking it into the port would have serialized each write separately, weakening a guarantee that matters for money correctness. Added 43 new use-case tests (`tests/unit/{transactions,closeDay,application-wallets,wipe,settings-usecases,sync,sms-import,backup,auth}.test.mjs`) against fake adapters in `tests/helpers/fakeAdapters.mjs`. All 77 tests pass; confirmed by grep that `application/*.js` only imports `domain/*.js` or other `application/*.js` files. `index.html` is still untouched. |
 | 2026-11-15 | 5 — Presentation and CSS split | Added `src/presentation/{store,router,dom,formatters}.js`, 6 view modules, 6 components, and `src/main.js` (composition root). Split the `<style>` block into `styles/{tokens,base,layout,components}.css` — verified byte-for-byte lossless via a script that compares the two rule sets (115 rules each, identical). Rewrote `index.html` as a thin shell: confirmed the `<body>` markup is **byte-identical** to the pre-refactor version (diffed programmatically), only the `<head>` (style `<link>`s) and the closing `<script>` tag (now `type="module" src="src/main.js"`) changed. `git diff index.html` was empty through phases 3-4 and only starts changing now, as this phase requires. Verified in a real, running headless Chrome (driven over the DevTools Protocol with Node's built-in `WebSocket` — `npx playwright install` was blocked by the sandbox, so this was the fallback) with the real `firebase-config.js` request intercepted to force local mode: booted cleanly, created and funded wallets, recorded a transaction (tiles/profit/wallet balance all matched the expected arithmetic exactly), voided it (fully reverted), closed a day, saved both settings cards, exported *and* restored a backup (restored wallet appeared with the exact balance from the test file), hit the login screen's empty-field validation path, and switched through every tab — zero console errors or exceptions across all of it. All 77 `node --test` cases still pass. `sw.js` is intentionally **not** updated yet (offline/precache is phase 6); until that phase, this branch's build is not offline-capable. Phone testing is still needed from the owner — noted in the summary. |
 | 2026-11-15 | 6 — Plumbing and instruction updates | Bumped `sw.js`'s `CACHE` to `daftar-v7` and added all 54 `src/`/`styles/` files to `FILES`. Added `scripts/check-precache.mjs` (walks `src/`+`styles/` on disk, fails if anything is missing from `sw.js`) — passes. Updated `build-apk.yml`'s copy step to `cp -r` both folders into `www/`. Rewrote `AGENTS.md`'s repo-layout table and hard rule 10 for the new layers, added the test/check commands to "Run locally", updated `CLAUDE.md`'s file-size note, and pointed `daftar-ui`/`daftar-ui-review`/`tokens.css` at `styles/`+`src/presentation/` instead of `index.html`. Verified "opens offline after the first load" with a real headless Chrome: loaded once online (service worker reached `activated`, cache held all 61 entries including `src/main.js`), then went fully offline (CDP `Network.emulateNetworkConditions`) and reloaded — the app still rendered with zero console errors. All 77 tests + the precache check pass. **Not done, and not mine to do:** merging `refactor/clean-arch` into `saeed-develop` — that's this phase's own ⛔ STOP, reserved for the owner. |
+| 2026-11-15 | Track 1 merge | `refactor/clean-arch` merged into `saeed-develop` and pushed. Git rules changed: the agent now runs the GitHub flow (PRs into `saeed-develop`, release PRs into `main` merged on the owner's word). Added Phase 6.5. |

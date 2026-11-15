@@ -82,6 +82,14 @@ node scripts/check-precache.mjs
 
 ## Git
 
-- Work on the branch the roadmap phase names (branched off `saeed-develop`); `main` is what ships.
-- **Never `git push`** — the owner pushes and merges.
+- Branches: `main` = what users get (live app + APK). `saeed-develop` = integration. Every phase works on its own branch from the latest `saeed-develop`, named in the roadmap.
+- **You own the GitHub flow** (with the `gh` CLI, authenticated as the owner). After each phase (or a meaningful chunk):
+  1. `git push -u origin <branch>`
+  2. Open (or update) a PR into `saeed-develop` with `gh pr create --base saeed-develop` — English title; body = what changed, how it was verified, roadmap phase.
+  3. Wait for checks: `gh pr checks --watch`. Fix anything red on the same branch.
+  4. When green: `gh pr merge --merge --delete-branch`, then `git checkout saeed-develop && git pull`.
+- **`main` is never pushed to directly.** At a ⛔ stop, or when the owner asks, open a release PR `saeed-develop → main` and give the owner its link. **Merge it only after the owner explicitly says so in chat** (e.g. "انشر" / "merge to main"), because merging `main` ships to users.
+- Keep `saeed-develop` up to date with `main`: if `main` has commits that `saeed-develop` lacks, merge `origin/main` into `saeed-develop` (via a small PR) before starting a phase.
+- Never force-push, never rewrite pushed history, never delete `main` or `saeed-develop`, never touch other people's branches or PRs unless the owner asks.
+- If `gh` is missing or not logged in, stop and tell the owner (in Egyptian Arabic) to run `gh auth login` — don't work around it.
 - Small, focused commits; message says what changed for the user (e.g. "ui: sidebar navigation on wide screens").
