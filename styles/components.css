@@ -18,6 +18,10 @@
 .btn-danger{background:transparent;border:1px solid var(--bad);color:var(--bad);padding:8px 12px;min-height:44px;font-weight:600}
 @media (hover:hover){.btn-danger:hover{background:var(--bad-soft)}}
 .btn-danger.armed{background:var(--bad);color:var(--accent-fg)}
+/* Paired confirm/cancel footer rows (sheets, the pending-SMS card): both
+   buttons share one compact 44px height regardless of variant, instead of
+   each call site hand-rolling its own padding override. */
+.row .btn-primary{min-height:44px;padding:11px 14px}
 
 /* ---------- pill / card ---------- */
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:600;padding:4px 10px;border-radius:var(--r-pill);background:var(--accent-soft);color:var(--accent);white-space:nowrap}
@@ -86,7 +90,7 @@
 .sp .l1{display:flex;justify-content:space-between;gap:8px;align-items:center}
 .sp .bad{color:var(--bad);font-weight:600}
 
-.more{background:transparent;color:var(--accent);font-weight:600;padding:8px;text-align:center}
+.more{background:transparent;color:var(--accent);font-weight:600;padding:8px;min-height:44px;text-align:center}
 @media (hover:hover){.more:hover{text-decoration:underline}}
 
 /* ---------- stat tiles ---------- */
@@ -133,10 +137,10 @@
 
 /* ---------- sheet / dialog ---------- */
 .scrim{position:fixed;inset:0;background:var(--scrim);z-index:30;display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:var(--r-xl) var(--r-xl) 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;max-height:92dvh;overflow:auto}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:var(--r-xl) var(--r-xl) 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;max-height:92dvh;overflow:auto;border-top:1px solid var(--line)}
 .sheet::before{content:"";width:36px;height:4px;flex:none;background:var(--line-strong);border-radius:var(--r-pill);align-self:center;margin-bottom:2px}
 @media (min-width:640px){
   .scrim{align-items:center}
-  .sheet{max-width:480px;border-radius:var(--r-lg);box-shadow:var(--shadow-2);max-height:85dvh}
+  .sheet{max-width:480px;border-radius:var(--r-lg);box-shadow:var(--shadow-2);max-height:85dvh;border-top:0}
   .sheet::before{display:none}
 }

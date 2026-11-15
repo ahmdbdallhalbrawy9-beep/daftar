@@ -53,27 +53,32 @@
   --dur:160ms; --ease:cubic-bezier(.2,.7,.3,1);
 }
 
+/* Dark is tuned deliberately, not inverted: surfaces get lighter as they
+   rise off a bg that stops short of pure black, with firmer (but still
+   soft) line colors so a card or sheet reads clearly even with shadows off.
+   Contrast ratios (WCAG relative luminance) verified in docs/ui-audit.md —
+   all text pairs stay well above 4.5:1 / 3:1. */
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme: dark;
-    --bg:#0d1311; --surface:#151d19; --surface-2:#1c2621;
-    --fg:#e6ede8; --muted:#98a89f; --line:#26312b; --line-strong:#34413a;
-    --accent:#4cc29b; --accent-hover:#63d0ab; --accent-fg:#04241a; --accent-soft:#163a2f; --focus:#4cc29b;
+    --bg:#111817; --surface:#1a2220; --surface-2:#222b29;
+    --fg:#e8ede9; --muted:#99a9a0; --line:#2c3733; --line-strong:#3d4a44;
+    --accent:#4cc29b; --accent-hover:#63d0ab; --accent-fg:#06281d; --accent-soft:#17352b; --focus:#4cc29b;
     --good:#6fd08c; --good-soft:#173324;
     --warn:#e8aa52; --warn-soft:#38290f;
     --bad:#ff8f86;  --bad-soft:#3b1d1a;
     --info:#7fb2f0; --info-soft:#17283d;
-    --shadow-1:none; --shadow-2:0 8px 24px rgba(0,0,0,.45); --scrim:rgba(0,0,0,.6);
+    --shadow-1:none; --shadow-2:0 8px 24px rgba(0,0,0,.5); --scrim:rgba(0,0,0,.6);
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --bg:#0d1311; --surface:#151d19; --surface-2:#1c2621;
-  --fg:#e6ede8; --muted:#98a89f; --line:#26312b; --line-strong:#34413a;
-  --accent:#4cc29b; --accent-hover:#63d0ab; --accent-fg:#04241a; --accent-soft:#163a2f; --focus:#4cc29b;
+  --bg:#111817; --surface:#1a2220; --surface-2:#222b29;
+  --fg:#e8ede9; --muted:#99a9a0; --line:#2c3733; --line-strong:#3d4a44;
+  --accent:#4cc29b; --accent-hover:#63d0ab; --accent-fg:#06281d; --accent-soft:#17352b; --focus:#4cc29b;
   --good:#6fd08c; --good-soft:#173324;
   --warn:#e8aa52; --warn-soft:#38290f;
   --bad:#ff8f86;  --bad-soft:#3b1d1a;
   --info:#7fb2f0; --info-soft:#17283d;
-  --shadow-1:none; --shadow-2:0 8px 24px rgba(0,0,0,.45); --scrim:rgba(0,0,0,.6);
+  --shadow-1:none; --shadow-2:0 8px 24px rgba(0,0,0,.5); --scrim:rgba(0,0,0,.6);
 }

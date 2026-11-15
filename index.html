@@ -38,13 +38,10 @@
 </defs></svg>
 
 <div class="app">
-  <header class="top">
-    <div><h1>دفتر المحفظة</h1><p class="sub" id="dateLine"></p></div>
-    <span class="pill warn" id="syncPill">جارٍ الاتصال…</span>
-  </header>
-
   <section id="tab-tx" class="tab on">
-    <div class="page-head"><div><h2 class="page-title">عملية</h2><p class="sub">سجّل عملية جديدة في ثوانٍ</p></div></div>
+    <div class="page-head"><div><h2 class="page-title">عملية</h2><p class="sub">سجّل عملية جديدة في ثوانٍ</p></div>
+      <div class="page-end" data-slot><span class="status-chip" id="statusChip"><span class="sub num" id="dateLine"></span><span class="pill warn" id="syncPill">جارٍ الاتصال…</span></span></div>
+    </div>
     <div id="setup"></div>
     <div id="notice"></div>
     <div id="guideBox"></div>
@@ -92,7 +89,9 @@
   </section>
 
   <section id="tab-wallets" class="tab">
-    <div class="page-head"><div><h2 class="page-title">المحافظ</h2><p class="sub">كل المحافظ وأرصدتها</p></div><button class="btn-primary" id="addWallet" style="flex:0 0 auto;padding:10px 18px;min-height:44px">+ محفظة</button></div>
+    <div class="page-head"><div><h2 class="page-title">المحافظ</h2><p class="sub">كل المحافظ وأرصدتها</p></div>
+      <div class="page-end" data-slot><button class="btn-primary" id="addWallet">+ محفظة</button></div>
+    </div>
     <p class="small">الليميت اليومي بيتجدد 12 بالليل، والشهري أول كل شهر الساعة 12، بتوقيت القاهرة.</p>
     <div class="seg" id="svcW"></div>
     <div class="small num" id="wTotal"></div>
@@ -100,7 +99,7 @@
   </section>
 
   <section id="tab-day" class="tab">
-    <div class="page-head"><div><h2 class="page-title">اليوم</h2><p class="sub">أرباح النهارده والجرد</p></div></div>
+    <div class="page-head"><div><h2 class="page-title">اليوم</h2><p class="sub">أرباح النهارده والجرد</p></div><div class="page-end" data-slot></div></div>
     <div id="bkNotice"></div>
     <div id="openCard"></div>
     <div class="grid" id="tiles"></div>
@@ -127,7 +126,7 @@
   </section>
 
   <section id="tab-hist" class="tab">
-    <div class="page-head"><div><h2 class="page-title">السجل</h2><p class="sub">عمليات الأيام اللي فاتت</p></div></div>
+    <div class="page-head"><div><h2 class="page-title">السجل</h2><p class="sub">عمليات الأيام اللي فاتت</p></div><div class="page-end" data-slot></div></div>
     <div class="card">
       <b>سجل العمليات</b>
       <div class="row"><button class="btn-ghost" id="hPrev" style="flex:0 0 auto">السابق</button><input type="date" id="hDate"><button class="btn-ghost" id="hNext" style="flex:0 0 auto">التالي</button></div>
@@ -140,7 +139,8 @@
   </section>
 
   <section id="tab-set" class="tab">
-    <div class="page-head"><div><h2 class="page-title">إعدادات</h2><p class="sub">الأسعار، النسخ الاحتياطي، والحساب</p></div></div>
+    <div class="page-head"><div><h2 class="page-title">إعدادات</h2><p class="sub">الأسعار، النسخ الاحتياطي، والحساب</p></div><div class="page-end" data-slot></div></div>
+    <div class="settings-grid">
     <div class="card">
       <b>المظهر</b>
       <div class="seg" id="themeSeg">
@@ -192,7 +192,7 @@
     <div class="card" id="installCard" hidden>
       <b>تثبيت التطبيق</b>
       <p class="small">ثبّته على الشاشة الرئيسية عشان يفتح زي أي تطبيق ويشتغل من غير نت.</p>
-      <button class="btn-primary" id="installBtn" style="padding:11px">تثبيت التطبيق</button>
+      <button class="btn-primary" id="installBtn">تثبيت التطبيق</button>
     </div>
     <div class="card">
       <b>نسخة احتياطية</b>
@@ -230,6 +230,7 @@
         </div>
       </div>
     </div>
+    </div>
   </section>
 </div>
 
@@ -257,7 +258,7 @@
     <div id="authMsg" class="notice" hidden></div>
     <button class="btn-primary" id="loginBtn">دخول</button>
     <button class="btn" id="signupBtn">إنشاء حساب جديد</button>
-    <button class="more" id="resetBtn" style="padding:4px">نسيت كلمة السر؟</button>
+    <button class="more" id="resetBtn">نسيت كلمة السر؟</button>
   </div>
 </div></div>
 <div id="toastBox"></div>

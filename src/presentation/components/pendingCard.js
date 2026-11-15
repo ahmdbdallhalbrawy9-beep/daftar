@@ -43,7 +43,7 @@ export function renderPend(store, computeResult, smsAvailable) {
       '<div class="small num">' + (it.p ? esc(it.p) + ' · ' : '') + (it.c ? 'رسوم المحفظة ' + fm2(it.c) + ' · ' : '') + (it.bal != null ? 'الرصيد بعدها ' + fm2(it.bal) : '') + '</div>' +
       '<div class="row"><select data-pw><option value="">اختار المحفظة</option>' + ws.map(function (w) { return '<option value="' + esc(w.id) + '"' + (w.id === it.sug ? ' selected' : '') + '>' + esc(w.name) + (w.phone ? ' · ' + esc(w.phone) : '') + '</option>'; }).join('') + '</select>' +
       (isF ? '<input data-pf inputmode="decimal" autocomplete="off" placeholder="' + lbl + '" value="' + defF + '">' : '') + '</div>' +
-      '<div class="row"><button class="btn-ghost" data-pig="1">تجاهل</button><button class="btn-primary" data-pok="1" style="padding:9px">تسجيل</button></div></div>';
+      '<div class="row"><button class="btn-ghost" data-pig="1">تجاهل</button><button class="btn-primary" data-pok="1">تسجيل</button></div></div>';
   });
   box.innerHTML = h + '</div>';
 }
