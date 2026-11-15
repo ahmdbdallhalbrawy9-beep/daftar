@@ -137,7 +137,7 @@ Not allowed: changing any calculation or data shape. Font: the system font stack
 
 **Done when:** no hex color outside the tokens file · the theme survives a reload.
 
-### Phase 8 — App shell and navigation ⬜
+### Phase 8 — App shell and navigation 🔄
 
 - [ ] One `<nav>` restyled by width: bottom bar (< 640px), rail (640–1023px), sidebar (≥ 1024px).
 - [ ] Inline SVG icons (sprite) + labels, `aria-current` on the active tab.
