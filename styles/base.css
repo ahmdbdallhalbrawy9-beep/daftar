@@ -1,0 +1,19 @@
+/* Resets, typography and form-element basics. Extracted from index.html's
+   <style> block unchanged. */
+:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);color-scheme:light}
+body{margin:0}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+html{direction:rtl}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5;
+  padding-block:12px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent}
+h1{font-size:20px;margin:0;font-weight:700}
+h2{font-size:13px;margin:6px 2px -4px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+p{margin:0}
+label{font-size:13px;color:var(--muted);font-weight:500}
+input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input.big{font-size:30px;font-weight:700;padding:10px 14px;font-variant-numeric:tabular-nums;text-align:center}
+button{font:inherit;cursor:pointer;border:0;color:var(--fg)}
+.check{display:flex;gap:8px;align-items:center}.check input{width:auto}
