@@ -8,6 +8,10 @@ import { KIND } from '../../domain/kinds.js';
 import { baseK } from '../../domain/kinds.js';
 import { hhmm } from '../../domain/time.js';
 
+/** Cash-drawer direction for this kind (matches domain/money.js's `cd` sign) — out/cashout bring cash in. */
+function isCashIn(kind) { var bk = baseK(kind); return bk === 'out' || bk === 'cashout'; }
+function amtHTML(n, kind) { return '<div class="amt' + (isCashIn(kind) ? ' in' : '') + '">' + fmt(n) + '</div>'; }
+
 /**
  * @param {object[]} L one transaction, or every leg of one split group
  * @param {import('../../domain/compute.js').ComputeResult} C
@@ -34,8 +38,8 @@ export function groupHTML(L, C, withDel, delId) {
       det = L.map(function (u) { return esc(nm0(u)) + ' ' + fmt(u.a); }).join('، ');
     }
     return '<div class="tx"><div><div class="t1">' + title + '</div><div class="t2 num">' + hhmm(t.ts) + (ftot ? ' · عمولة ' + fmt(ftot) : '') + (ctot ? ' · رسوم محافظ ' + fm2(ctot) : '') + (t.n ? ' · ' + esc(t.n) : '') + '</div><div class="t2">' + det + '</div></div>' +
-      '<div style="display:flex;align-items:center;gap:4px"><div class="amt">' + fmt(amt) + '</div>' + btn + '</div></div>';
+      '<div style="display:flex;align-items:center;gap:4px">' + amtHTML(amt, t.k) + btn + '</div></div>';
   }
   return '<div class="tx"><div><div class="t1">' + KIND[t.k] + ' · ' + esc(nm0(t)) + '</div><div class="t2 num">' + hhmm(t.ts) + (t.f ? ' · ' + ((baseK(t.k) === 'in' || baseK(t.k) === 'out') ? 'عمولة' : 'خسارة') + ' ' + fmt(t.f) : '') + (t.c ? ' · رسوم محفظة ' + fm2(t.c) : '') + (t.m ? ' · ' + (t.m === 'atm' ? 'ATM' : 'فوري') : '') + (t.n ? ' · ' + esc(t.n) : '') + '</div></div>' +
-    '<div style="display:flex;align-items:center;gap:4px"><div class="amt">' + fmt(t.a) + '</div>' + btn + '</div></div>';
+    '<div style="display:flex;align-items:center;gap:4px">' + amtHTML(t.a, t.k) + btn + '</div></div>';
 }

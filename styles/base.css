@@ -5,18 +5,18 @@ body{margin:0}
 [hidden]{display:none!important}
 *{box-sizing:border-box}
 html{direction:rtl}
-body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5;
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:var(--fs-md);line-height:1.5;
   padding-block:12px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   -webkit-tap-highlight-color:transparent}
 /* Clear the bottom bar only on phones; clear the rail/sidebar on wider screens instead. */
 @media (min-width:640px){body{padding-block:24px;padding-inline-start:calc(var(--rail-w) + 16px)}}
 @media (min-width:1024px){body{padding-inline-start:calc(var(--sidebar-w) + 24px)}}
-h1{font-size:20px;margin:0;font-weight:700}
-h2{font-size:13px;margin:6px 2px -4px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+h1{font-size:var(--fs-xl);margin:0;font-weight:700}
+h2{font-size:var(--fs-sm);margin:6px 2px -4px;color:var(--muted);font-weight:600;letter-spacing:.02em}
 p{margin:0}
-label{font-size:13px;color:var(--muted);font-weight:500}
-input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
-input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-input.big{font-size:30px;font-weight:700;padding:10px 14px;font-variant-numeric:tabular-nums;text-align:center}
+label{font-size:var(--fs-sm);color:var(--muted);font-weight:500}
+input,select{font:inherit;color:var(--fg);background:var(--surface-2);border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:10px 12px;min-height:44px;width:100%;min-width:0}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+input.big{font-size:var(--fs-num);font-weight:700;padding:10px 14px;font-variant-numeric:tabular-nums;text-align:center}
 button{font:inherit;cursor:pointer;border:0;color:var(--fg)}
 .check{display:flex;gap:8px;align-items:center}.check input{width:auto}

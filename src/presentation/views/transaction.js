@@ -30,7 +30,7 @@ export function setupHTML() {
     '<div class="f2"><div><label for="nVf">عدد محافظ فودافون</label><input id="nVf" inputmode="numeric" value="12"></div><div><label for="nIn">عدد حسابات إنستاباي</label><input id="nIn" inputmode="numeric" value="2"></div>' +
     '<div><label for="vfD">فودافون: ليميت يومي</label><input id="vfD" inputmode="numeric" value="60000"></div><div><label for="vfM">فودافون: ليميت شهري</label><input id="vfM" inputmode="numeric" value="200000"></div>' +
     '<div><label for="inD">إنستاباي: ليميت يومي</label><input id="inD" inputmode="numeric" value="120000"></div><div><label for="inM">إنستاباي: ليميت شهري</label><input id="inM" inputmode="numeric" value="400000"></div></div>' +
-    '<button class="primary" id="doSetup">إنشاء المحافظ</button></div>' +
+    '<button class="btn-primary" id="doSetup">إنشاء المحافظ</button></div>' +
     '<div class="card"><b>بعد كده</b><div class="small">1) اكتب رقم كل محفظة · 2) اظبط الأرصدة من الجرد · 3) سجّل نقدية الدرج أول اليوم · 4) سجّل عملياتك، أو أكّدها من الرسائل الجديدة.</div></div>';
 }
 
@@ -145,7 +145,7 @@ export function renderSplit(store, C, A, F) {
         '<div class="row"><input data-spin="' + esc(w.id) + '" inputmode="decimal" autocomplete="off" placeholder="' + (coll ? 'هتحوّل للمجمِّعة كام' : 'هتدفع كام') + '" value="' + esc(ui.sp[w.id] || '') + '"><span class="small num" data-spf="' + esc(w.id) + '"></span></div>' +
         '<div class="small num" data-spl="' + esc(w.id) + '"></div></div>';
     }).join('');
-    h += '<button class="ghost" id="spAuto">وزّع تلقائي</button><div class="small num" id="spInfo"></div>';
+    h += '<button class="btn-ghost" id="spAuto">وزّع تلقائي</button><div class="small num" id="spInfo"></div>';
     box.innerHTML = h;
     if (coll) $('#spCol').value = ui.col;
   }
