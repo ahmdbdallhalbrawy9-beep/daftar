@@ -91,8 +91,9 @@ export async function ignorePending(db, queue, deviceId, inbox, itemId) {
  * @param {number} fee
  * @param {import('../domain/compute.js').ComputeResult} computeResult
  * @param {{vfSame:number}} settings
+ * @param {{deferred?: boolean, customer?: string}} [opts] "آجل" (in/out only)
  */
-export async function confirmPending(db, queue, deviceId, ledger, item, walletId, fee, computeResult, settings) {
+export async function confirmPending(db, queue, deviceId, ledger, item, walletId, fee, computeResult, settings, opts) {
   if (!walletId) return { ok: false, error: 'no-wallet' };
   var F = Math.max(0, fee || 0), x = computeResult.W[walletId];
   var rec = { id: rid('t'), ts: item.ts, w: walletId, a: item.a, f: F, n: item.p || '', sid: item.id };
@@ -102,6 +103,11 @@ export async function confirmPending(db, queue, deviceId, ledger, item, walletId
   else { rec.k = 'topup'; rec.f = 0; }
   if (x && ((rec.k === 'out' && x.bal < item.a + (item.c || 0) - 0.005) || (rec.k === 'cashout' && x.bal < item.a - 0.005))) {
     return { ok: false, error: 'insufficient' };
+  }
+  if (opts && opts.deferred && (rec.k === 'in' || rec.k === 'out')) {
+    var cn = (opts.customer || '').trim();
+    if (!cn) return { ok: false, error: 'need-name' };
+    rec.dl = 1; rec.cn = cn;
   }
   await persistTxs(db, queue, deviceId, ledger, [rec]);
   return { ok: true, record: rec };

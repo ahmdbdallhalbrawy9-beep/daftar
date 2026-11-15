@@ -10,11 +10,14 @@ import { toast } from '../components/toast.js';
 import { NUM } from '../../domain/numbers.js';
 import { baseK, isInsta, MSG, KIND } from '../../domain/kinds.js';
 import { walletCost } from '../../domain/money.js';
+import { entryChk, MSG_SM, WARN_SD, WARN_SM } from '../../domain/limits.js';
+import { deferLimitCheck, custKey } from '../../domain/customers.js';
 import { rank } from '../../domain/rank.js';
 import { splitWallets, resolveCollector } from '../../domain/wallets.js';
 import { buildPlan, suggestAutoSplit } from '../../domain/plan.js';
 import { recordTransaction } from '../../application/transactions.js';
 import { setupWallets } from '../../application/wallets.js';
+import { setCustomerLimit } from '../../application/customers.js';
 import { writable } from '../../application/sync.js';
 import { showTab } from '../router.js';
 
@@ -67,6 +70,21 @@ export function renderTx(store, C) {
       : '<span class="small">إنستاباي بياخد 0.1% بحد أقصى 20 جنيه</span>';
   }
 
+  // "خيارات إضافية": آجل is only for a one-wallet in/out
+  var xv = !sp0 && (bk === 'in' || bk === 'out');
+  $('#xtra').style.display = xv ? '' : 'none';
+  var dfOn = xv && $('#dlOn').checked;
+  $('#dlBox').style.display = dfOn ? 'flex' : 'none';
+  var dfName = $('#dlName').value.trim(), dfLim = NUM($('#dlLim').value);
+  var names = {};
+  Object.keys(state.settings.cm || {}).forEach(function (q) { names[q] = state.settings.cm[q].n; });
+  Object.keys(C.cust || {}).forEach(function (q) { names[q] = C.cust[q].n; });
+  var nkey = Object.keys(names).map(function (q) { return names[q]; }).sort().join('|');
+  if ($('#custList').dataset.k !== nkey) {
+    $('#custList').dataset.k = nkey;
+    $('#custList').innerHTML = Object.keys(names).map(function (q) { return '<option value="' + esc(names[q]) + '">'; }).join('');
+  }
+
   $('#costInp').style.display = sp0 ? 'none' : 'flex';
   var su = $('#setup');
   if (state.ready.wallets && state.synced && !state.wallets.length) {
@@ -85,14 +103,16 @@ export function renderTx(store, C) {
 
   var s = '';
   if (A > 0) {
-    if (bk === 'out') s = '<div>هتاخد من الزبون <b>' + fmt(A + F) + '</b> كاش</div><span class="muted">المحفظة بتنقص ' + fm2(A + c) + (c ? ' (منها رسوم ' + fm2(c) + ')' : '') + ' · صافي ربحك ' + fm2(F - c) + '</span>';
+    if (dfOn && bk === 'out') s = '<div>العميل هيدفع لك <b>' + fmt(A + F) + '</b> كاش بعدين</div><span class="muted">المحفظة بتنقص ' + fm2(A + c) + (c ? ' (منها رسوم ' + fm2(c) + ')' : '') + ' · الدرج ما بيتأثرش · صافي ربحك ' + fm2(F - c) + '</span>';
+    else if (dfOn && bk === 'in') s = '<div>هتدّي العميل <b>' + fmt(A - F) + '</b> كاش بعدين</div><span class="muted">المحفظة بتزيد ' + fmt(A) + ' · الدرج ما بيتأثرش · ربحك ' + fmt(F) + '</span>';
+    else if (bk === 'out') s = '<div>هتاخد من الزبون <b>' + fmt(A + F) + '</b> كاش</div><span class="muted">المحفظة بتنقص ' + fm2(A + c) + (c ? ' (منها رسوم ' + fm2(c) + ')' : '') + ' · صافي ربحك ' + fm2(F - c) + '</span>';
     else if (bk === 'in') s = '<div>هتدّي الزبون <b>' + fmt(A - F) + '</b> كاش</div><span class="muted">المحفظة بتزيد ' + fmt(A) + ' · ربحك ' + fmt(F) + '</span>';
     else if (k === 'topup') s = '<div>هتطلع <b>' + fmt(A) + '</b> من الدرج وتحطها في المحفظة</div>';
     else if (k === 'itopup') s = '<div>هتطلع <b>' + fmt(A + F) + '</b> من الدرج</div><span class="muted">الحساب بيزيد ' + fmt(A) + ' · رسوم ' + fmt(F) + '</span>';
     else if (k === 'cashout') s = '<div>هتاخد <b>' + fmt(A - F) + '</b> كاش في الدرج</div><span class="muted">المحفظة بتنقص ' + fmt(A) + ' · خسارة ' + fmt(F) + '</span>';
     else s = '<div>هتاخد <b>' + fmt(A) + '</b> من الحساب وتحطها في الدرج</div>';
   } else s = '<span class="muted">اكتب المبلغ وهيقترح لك أنسب محفظة</span>';
-  var need = bk === 'in' ? A - F : bk === 'topup' ? A + F : 0, noCash = A > 0 && need > 0 && C.cash < need - 0.0001;
+  var need = bk === 'in' && !dfOn ? A - F : bk === 'topup' ? A + F : 0, noCash = A > 0 && need > 0 && C.cash < need - 0.0001;
   if (noCash) s += '<div class="cashwarn">لا يوجد نقدية كافية في الدرج (المتاح ' + fmt(C.cash) + ')</div>';
   $('#sum').innerHTML = s;
 
@@ -119,7 +139,25 @@ export function renderTx(store, C) {
   $('#picker').innerHTML = html;
   var balBad = A > 0 && chosen && ((bk === 'out' && chosen.x.bal < A + c - 0.005) || (bk === 'cashout' && chosen.x.bal < A - 0.005));
   if (balBad) $('#sum').insertAdjacentHTML('beforeend', '<div class="cashwarn">' + MSG + '</div>');
-  $('#save').disabled = !(A > 0 && ui.sel && writable(state) && !noCash && !balBad);
+  var blockM = false, extra = '';
+  if (A > 0 && chosen) {
+    var ec = entryChk(chosen.x, state.settings, A);
+    if (bk === 'topup') {
+      if (ec.m) { blockM = true; extra += '<div class="cashwarn">' + MSG_SM + '</div>'; }
+      else if (ec.d) extra += '<div class="cashwarn soft">' + WARN_SD + '</div>';
+    } else if (bk === 'in') {
+      if (ec.m) extra += '<div class="cashwarn soft">' + WARN_SM + '</div>';
+      else if (ec.d) extra += '<div class="cashwarn soft">' + WARN_SD + '</div>';
+    }
+  }
+  var needName = dfOn && A > 0 && !dfName;
+  if (needName) extra += '<div class="cashwarn">اكتب اسم العميل</div>';
+  if (dfOn && dfName && A > 0) {
+    var lc = deferLimitCheck(C, state.settings, dfName, bk, A, F, dfLim);
+    if (lc.over) extra += '<div class="cashwarn soft">' + esc(deferWarnText(dfName, lc)) + '</div>';
+  }
+  if (extra) $('#sum').insertAdjacentHTML('beforeend', extra);
+  $('#save').disabled = !(A > 0 && ui.sel && writable(state) && !noCash && !balBad && !blockM && !needName);
   $('#save').textContent = chosen && !chosen.fits && A > 0 && useLim ? 'سجّل برضه (المحفظة فوق الليميت)' : 'تسجيل العملية';
 }
 
@@ -132,7 +170,7 @@ export function renderSplit(store, C, A, F) {
   var state = store.getState(), ui = state.ui;
   var k = ui.kind, ws = splitWallets(k, state.wallets), coll = ui.sm === 'collect', box = $('#splitBox');
   if (coll) {
-    var resolved = resolveCollector(ws, C, ui.col);
+    var resolved = resolveCollector(ws, C, ui.col, A, state.settings);
     if (resolved !== ui.col) { store.patchUI({ col: resolved }); ui = store.getState().ui; }
   }
   var key = ui.sm + '|' + k + '|' + (coll ? ui.col : '') + '|' + ws.map(function (w) { return w.id + ':' + w.name; }).join(',');
@@ -172,11 +210,18 @@ export function renderSplit(store, C, A, F) {
   var s = '';
   if (A > 0) s = '<div>هتاخد من الزبون <b>' + fmt(A + F) + '</b> كاش</div><span class="muted">رسوم المحافظ ' + fm2(pl.ctot) + ' · صافي ربحك ' + fm2(F - pl.ctot) + '</span>';
   else s = '<span class="muted">اكتب المبلغ وبعدين وزّعه على المحافظ</span>';
+  if (pl.stuckM) s += '<div class="cashwarn">' + MSG_SM + '</div>';
+  else if (pl.stuckD) s += '<div class="cashwarn soft">' + WARN_SD + '</div>';
   if (pl.short) s += '<div class="cashwarn">' + MSG + '</div>';
   else if (coll && A > 0 && pl.own < -0.005) s += '<div class="cashwarn">المبلغ المحوَّل للمجمِّعة أكبر من المطلوب</div>';
   $('#sum').innerHTML = s;
   $('#save').disabled = !(pl.ok && writable(state));
   $('#save').textContent = pl.ok && over ? 'سجّل برضه (فوق الليميت)' : 'تسجيل العملية';
+}
+
+/** Warning text for a deferred op that pushes a customer's balance over his limit. */
+export function deferWarnText(name, lc) {
+  return 'تنبيه: الآجل على ' + name + ' هيوصل ' + fmt(Math.abs(lc.newV)) + ' وده فوق الحد (' + fmt(lc.lim) + ')';
 }
 
 /** @param {ReturnType<typeof import('../store.js').createStore>} store @param {import('../../domain/compute.js').ComputeResult} C */
@@ -185,7 +230,7 @@ export function autoSplitAction(store, C) {
   var A = NUM($('#amt').value);
   if (!(A > 0)) { toast('اكتب المبلغ الأول', true); return; }
   var ws = splitWallets(ui.kind, state.wallets);
-  var collectorId = ui.sm === 'collect' ? resolveCollector(ws, C, ui.col) : null;
+  var collectorId = ui.sm === 'collect' ? resolveCollector(ws, C, ui.col, A, state.settings) : null;
   var res = suggestAutoSplit(ui.kind, ui.sm, collectorId, ws, C, state.settings, ui.dest, A);
   store.patchUI({ sp: res.splits, spKey: '', col: collectorId });
   if (res.rest > 0.005) toast(MSG, true);
@@ -224,7 +269,11 @@ export async function saveAction(store, ctx, C) {
   var ws = isSplit ? splitWallets(k, state.wallets) : state.wallets;
   var cc = 0;
   if (!isSplit) { if (baseK(k) === 'out') cc = NUM($('#cost').value); }
+  var xv = !isSplit && (baseK(k) === 'in' || baseK(k) === 'out');
+  var deferred = xv && $('#dlOn').checked, cname = $('#dlName').value.trim(), clim = NUM($('#dlLim').value);
+  var lc = deferred && cname ? deferLimitCheck(C, state.settings, cname, baseK(k), A, F, clim) : null;
   var params = {
+    deferred: deferred, customer: cname,
     kind: k, amount: A, fee: F, cost: cc, dest: ui.dest, note: note,
     selectedWalletId: ui.sel, splitMode: ui.sm, splits: ui.sp, collectorId: ui.col,
   };
@@ -233,17 +282,25 @@ export async function saveAction(store, ctx, C) {
     if (res.error === 'insufficient') toast(MSG, true);
     else if (res.error === 'choose-collector') toast('حدد المحافظ اللي هتجمّع منها', true);
     else if (res.error === 'split-mismatch') toast('مجموع المبالغ لازم يساوي ' + fm2(A), true);
+    else if (res.error === 'stuck-month') toast(MSG_SM, true);
+    else if (res.error === 'need-name') toast('اكتب اسم العميل', true);
     return;
   }
+  var warnTxt = (res.warn === 'm' ? WARN_SM : res.warn === 'd' ? WARN_SD : '') + (lc && lc.over ? ' ' + deferWarnText(cname, lc) : '');
+  if (deferred && clim > 0) {
+    var cur = (state.settings.cm || {})[custKey(cname)];
+    if (!cur || cur.lim !== clim) await setCustomerLimit(ctx.db, ctx.queue, store.getState().settings, cname, clim);
+  }
+  if (deferred) { $('#dlOn').checked = false; $('#dlName').value = ''; $('#dlLim').value = ''; }
   if (isSplit) {
-    toast('اتسجّلت: ' + (ui.sm === 'collect' ? 'تجميع ثم ' : 'تحويل مقسّم ') + KIND[k] + ' ' + fmt(A) + ' · ' + res.records.length + ' حركات');
+    toast('اتسجّلت: ' + (ui.sm === 'collect' ? 'تجميع ثم ' : 'تحويل مقسّم ') + KIND[k] + ' ' + fmt(A) + ' · ' + res.records.length + ' حركات' + (warnTxt ? ' — ' + warnTxt : ''));
     $('#amt').value = ''; $('#note').value = ''; $('#fee').value = ''; $('#cost').value = '';
     store.patchUI({ feeManual: false, costManual: false, dest: 'vf', sp: {}, spKey: '', col: null });
     $('#amt').focus();
     return;
   }
   var chosenWallet = state.wallets.filter(function (x) { return x.id === ui.sel; })[0];
-  toast('اتسجّلت: ' + KIND[k] + ' ' + fmt(A) + ' · ' + (chosenWallet ? chosenWallet.name : ''));
+  toast('اتسجّلت: ' + (deferred ? 'آجل · ' : '') + KIND[k] + ' ' + fmt(A) + ' · ' + (chosenWallet ? chosenWallet.name : '') + (warnTxt ? ' — ' + warnTxt : ''));
   $('#amt').value = ''; $('#note').value = ''; $('#fee').value = ''; $('#cost').value = '';
   store.patchUI({ feeManual: false, costManual: false, dest: 'vf', manualSel: false });
   $('#amt').focus();

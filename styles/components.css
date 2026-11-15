@@ -144,3 +144,15 @@
   .sheet{max-width:480px;border-radius:var(--r-lg);box-shadow:var(--shadow-2);max-height:85dvh;border-top:0}
   .sheet::before{display:none}
 }
+
+/* ---------- extra options (آجل) ---------- */
+.xtra{border:1px solid var(--line);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3)}
+.xtra summary{cursor:pointer;font-weight:500;color:var(--muted);min-height:32px;display:flex;align-items:center}
+.xtra[open] summary{color:var(--fg)}
+.xtra-body{display:flex;flex-direction:column;gap:var(--sp-3);padding-block:var(--sp-2)}
+.cashwarn.soft{background:var(--warn-soft);color:var(--warn)}
+.cust{display:flex;flex-direction:column;gap:var(--sp-2);padding-block:var(--sp-3);border-top:1px solid var(--line)}
+.cust:first-of-type{border-top:0}
+.cust .row2{display:flex;justify-content:space-between;align-items:baseline;gap:var(--sp-2)}
+.cust .acts{display:flex;gap:var(--sp-2)}
+.cust .acts button{flex:1}

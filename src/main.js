@@ -10,13 +10,14 @@ import { createStore } from './presentation/store.js';
 import { showTab } from './presentation/router.js';
 import { toast } from './presentation/components/toast.js';
 import { renderSyncPill } from './presentation/components/pill.js';
-import { pendActionFromCard, renderPend } from './presentation/components/pendingCard.js';
+import { pendActionFromCard, renderPend, updatePendWarn } from './presentation/components/pendingCard.js';
 import { renderTx, autoSplitAction, saveAction, doSetupAction } from './presentation/views/transaction.js';
 import { renderWallets, openWalletSheet } from './presentation/views/wallets.js';
 import {
   renderGuide, dismissGuideAction, renderOpen, openCashSheet, updateDiffs,
   renderDay, doCloseAction, voidTxAction,
 } from './presentation/views/today.js';
+import { openSettle, openCustLimit } from './presentation/views/customers.js';
 import { renderHist } from './presentation/views/history.js';
 import {
   renderSet, saveRatesAction, saveSetAction, pwSetAction, pwChangeAction,
@@ -52,7 +53,7 @@ var db = null;
 var authPort = null;
 
 function getCtx() {
-  return { db: db, queue: queue, clock: clock, deviceId: deviceId, auth: authPort, sha: sha };
+  return { db: db, queue: queue, clock: clock, deviceId: deviceId, auth: authPort, sha: sha, getCompute: currentCompute };
 }
 
 function currentCompute() {
@@ -131,6 +132,8 @@ document.addEventListener('click', function (e) {
   if (t.dataset.w) { store.patchUI({ sel: t.dataset.w, manualSel: true }); return; }
   if (t.dataset.more) { store.patchUI({ showAll: t.dataset.more === '1' }); return; }
   if (t.dataset.edit) return openWalletSheet(store, getCtx(), C, t.dataset.edit);
+  if (t.dataset.cs) return openSettle(store, getCtx(), C, t.dataset.cs);
+  if (t.dataset.cl) return openCustLimit(store, getCtx(), C, t.dataset.cl);
   if (t.dataset.del) return voidTxAction(store, getCtx(), t.dataset.del);
   if (t.id === 'doSetup') return doSetupAction(store, getCtx());
   if (t.id === 'save') return saveAction(store, getCtx(), C);
@@ -168,6 +171,10 @@ $('#splitBox').addEventListener('change', function (e) {
     delete sp[e.target.value];
     store.patchUI({ sp: sp, col: e.target.value, spKey: '' });
   }
+});
+['#dlOn', '#dlName', '#dlLim'].forEach(function (q) { $(q).addEventListener('input', function () { store.notify(); }); $(q).addEventListener('change', function () { store.notify(); }); });
+$('#pendBox').addEventListener('change', function (e) {
+  if (e.target.matches && e.target.matches('[data-pw],[data-pdl]')) updatePendWarn(store, currentCompute(), e.target.closest('[data-pid]'));
 });
 $('#fee').addEventListener('input', function () { store.patchUI({ feeManual: true }); });
 $('#cost').addEventListener('input', function () { store.patchUI({ costManual: true }); });

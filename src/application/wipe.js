@@ -6,6 +6,7 @@
 // header comment for why) — each wipe is one serialized block, same as
 // index.html's `wipeAll`/`doWipe`.
 import { checkWipePassword } from './settingsUseCases.js';
+import { openCustomers } from '../domain/customers.js';
 
 /**
  * Deletes every document in every collection (password-gated).
@@ -49,10 +50,13 @@ export async function wipeTransactions(db, queue, clock, computeResult, wallets,
   var lids = Object.keys(state.ledger || {});
   var cids = (state.closes || []).map(function (c) { return c.id; }).filter(Boolean);
   var iids = Object.keys(state.inbox || {});
+  // open customer credit (آجل) must survive the wipe: carry it over in settings.cb
+  var cb = {};
+  openCustomers(C.cust || {}).forEach(function (c) { cb[c.key] = { n: c.n, v: c.v }; });
   await queue(function () {
     var p = Promise.resolve();
     wallets.forEach(function (w) { p = p.then(function () { return db.collection('wallets').doc(w.id).update({ base: C.W[w.id].bal, baseTs: ts }); }); });
-    p = p.then(function () { return db.collection('settings').doc('main').set(Object.assign({}, settings, { baseCash: C.cash, baseTs: ts })); });
+    p = p.then(function () { return db.collection('settings').doc('main').set(Object.assign({}, settings, { baseCash: C.cash, baseTs: ts, cb: cb })); });
     lids.forEach(function (id) { p = p.then(function () { return db.collection('ledger').doc(id).delete(); }); });
     cids.forEach(function (id) { p = p.then(function () { return db.collection('closes').doc(id).delete(); }); });
     iids.forEach(function (id) { p = p.then(function () { return db.collection('settings').doc('inbox_' + id).delete(); }); });

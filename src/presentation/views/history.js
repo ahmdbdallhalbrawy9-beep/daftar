@@ -26,7 +26,7 @@ export function renderHist(store, C) {
   var dl = Object.keys(days).sort().reverse().slice(0, 10);
   $('#hDays').innerHTML = dl.map(function (d) { return '<button class="chip' + (d === dk ? ' on' : '') + '" data-hd="' + d + '">' + d.slice(6) + '/' + d.slice(4, 6) + '</button>'; }).join('');
   $('#hFlt').innerHTML = [['all', 'الكل'], ['v', 'فودافون كاش'], ['i', 'إنستاباي']].map(function (f) { return '<button class="chip' + (state.ui.hflt === f[0] ? ' on' : '') + '" data-hf="' + f[0] + '">' + f[1] + '</button>'; }).join('');
-  var list = live.filter(function (t) { return dayKey(t.ts) === dk && (state.ui.hflt === 'all' || (state.ui.hflt === 'i') === isInsT(t)); });
+  var list = live.filter(function (t) { return dayKey(t.ts) === dk && (state.ui.hflt === 'all' || (t.k !== 'settle' && (state.ui.hflt === 'i') === isInsT(t))); });
   var sm = daySum(list), op = (state.settings.opens || {})[dk];
   if (!op && state.settings.openDay === dk) op = { a: state.settings.openAmt || 0, ts: state.settings.openTs || 0 };
   var sg = function (n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n)); };

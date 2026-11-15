@@ -11,7 +11,25 @@ import { NUM } from '../../domain/numbers.js';
 import { liveTxs } from '../../domain/ledger.js';
 import { pendingItems, confirmPending, ignorePending } from '../../application/smsImport.js';
 import { writable } from '../../application/sync.js';
+import { entryChk, WARN_SD, WARN_SM } from '../../domain/limits.js';
 import { toast } from './toast.js';
+
+/** Warning text for an already-happened receive (in / deposit) landing on wallet `wid`. */
+function pendWarnText(state, C, kind, a, wid) {
+  var x = wid && C.W[wid];
+  if (!x || (kind !== 'in' && kind !== 'dep') || !(a > 0)) return '';
+  var ec = entryChk(x, state.settings, a);
+  return ec.m ? WARN_SM : ec.d ? WARN_SD : '';
+}
+
+/** Refreshes one card's limit warning after the wallet choice changes. */
+export function updatePendWarn(store, C, card) {
+  if (!card) return;
+  var el = card.querySelector('[data-pwarn]');
+  if (!el) return;
+  var t = pendWarnText(store.getState(), C, card.dataset.pk, +card.dataset.pa, card.querySelector('[data-pw]').value);
+  el.innerHTML = t ? '<div class="cashwarn soft">' + esc(t) + '</div>' : '';
+}
 
 /**
  * @param {ReturnType<typeof import('../store.js').createStore>} store
@@ -39,10 +57,13 @@ export function renderPend(store, computeResult, smsAvailable) {
   items.forEach(function (it) {
     var isF = it.k !== 'dep', lbl = it.k === 'cashout' ? 'خسارة السحب' : 'عمولتك';
     var defF = it.k === 'in' || it.k === 'out' ? Math.round(it.a * state.settings.feePct / 100) : it.k === 'cashout' ? Math.round(it.a * state.settings.feePctC / 100) : 0;
-    h += '<div class="sp" data-pid="' + esc(it.id) + '"><div class="l1"><b>' + PKIND[it.k] + ' · ' + fm2(it.a) + ' ج</b><span class="small num">' + hhmm(it.ts) + '</span></div>' +
+    var pw0 = pendWarnText(state, computeResult, it.k, it.a, it.sug), canDef = it.k === 'in' || it.k === 'out';
+    h += '<div class="sp" data-pid="' + esc(it.id) + '" data-pk="' + esc(it.k) + '" data-pa="' + it.a + '"><div class="l1"><b>' + PKIND[it.k] + ' · ' + fm2(it.a) + ' ج</b><span class="small num">' + hhmm(it.ts) + '</span></div>' +
       '<div class="small num">' + (it.p ? esc(it.p) + ' · ' : '') + (it.c ? 'رسوم المحفظة ' + fm2(it.c) + ' · ' : '') + (it.bal != null ? 'الرصيد بعدها ' + fm2(it.bal) : '') + '</div>' +
       '<div class="row"><select data-pw><option value="">اختار المحفظة</option>' + ws.map(function (w) { return '<option value="' + esc(w.id) + '"' + (w.id === it.sug ? ' selected' : '') + '>' + esc(w.name) + (w.phone ? ' · ' + esc(w.phone) : '') + '</option>'; }).join('') + '</select>' +
       (isF ? '<input data-pf inputmode="decimal" autocomplete="off" placeholder="' + lbl + '" value="' + defF + '">' : '') + '</div>' +
+      '<div data-pwarn="1">' + (pw0 ? '<div class="cashwarn soft">' + esc(pw0) + '</div>' : '') + '</div>' +
+      (canDef ? '<details class="xtra"><summary>خيارات إضافية</summary><div class="xtra-body"><label class="check"><input type="checkbox" data-pdl="1"> آجل (الكاش هيتسلّم بعدين)</label><input data-pcn="1" autocomplete="off" list="custList" placeholder="اسم العميل"></div></details>' : '') +
       '<div class="row"><button class="btn-ghost" data-pig="1">تجاهل</button><button class="btn-primary" data-pok="1">تسجيل</button></div></div>';
   });
   box.innerHTML = h + '</div>';
@@ -72,8 +93,12 @@ export async function pendActionFromCard(store, ctx, card, ok, computeResult) {
   var wid = card.querySelector('[data-pw]').value;
   if (!wid) { toast('اختار المحفظة الأول', true); return; }
   var fi = card.querySelector('[data-pf]'), F = fi ? Math.max(0, NUM(fi.value)) : 0;
+  var dlEl = card.querySelector('[data-pdl]'), dl = !!(dlEl && dlEl.checked), cnEl = card.querySelector('[data-pcn]'), cn = cnEl ? cnEl.value.trim() : '';
+  if (dl && !cn) { toast('اكتب اسم العميل', true); return; }
+  var warn = pendWarnText(state, computeResult, it.k, it.a, wid);
   store.patchUI({ pendKey: '' });
-  var res = await confirmPending(ctx.db, ctx.queue, ctx.deviceId, state.ledger, it, wid, F, computeResult, state.settings);
-  if (!res.ok) { toast(MSG + ' (راجع رصيد المحفظة أو اختار محفظة تانية)', true); return; }
-  toast('اتسجّلت: ' + PKIND[it.k] + ' ' + fm2(it.a));
+  var res = await confirmPending(ctx.db, ctx.queue, ctx.deviceId, state.ledger, it, wid, F, computeResult, state.settings, { deferred: dl, customer: cn });
+  if (!res.ok) {
+    if (res.error === 'need-name') { toast('اكتب اسم العميل', true); return; } toast(MSG + ' (راجع رصيد المحفظة أو اختار محفظة تانية)', true); return; }
+  toast('اتسجّلت: ' + (dl ? 'آجل · ' : '') + PKIND[it.k] + ' ' + fm2(it.a) + (warn ? ' — ' + warn : ''));
 }

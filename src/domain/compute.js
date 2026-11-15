@@ -6,6 +6,7 @@
 import { baseK, isInsta } from './kinds.js';
 import { wd, cd } from './money.js';
 import { dayKey } from './time.js';
+import { custKey, deferDelta } from './customers.js';
 
 /**
  * @typedef {object} ComputeResult
@@ -17,10 +18,11 @@ import { dayKey } from './time.js';
  * @property {number} pMonI
  * @property {number} nDay
  * @property {object[]} today
+ * @property {Record<string,{n:string,v:number,last:number}>} cust open customer credit (positive = customer owes me)
  */
 
 /**
- * @param {{ledger: Record<string, object[]>, wallets: Array<{id:string,base?:number,baseTs?:number}>, settings: {baseCash?:number,baseTs?:number}, now: number}} params
+ * @param {{ledger: Record<string, object[]>, wallets: Array<{id:string,base?:number,baseTs?:number}>, settings: {baseCash?:number,baseTs?:number,cb?:Record<string,{n:string,v:number}>}, now: number}} params
  * @returns {ComputeResult}
  */
 export function compute(params) {
@@ -34,7 +36,19 @@ export function compute(params) {
   var W = {};
   wallets.forEach(function (w) { W[w.id] = { w: w, bal: w.base || 0, dIn: 0, dOut: 0, mIn: 0, mOut: 0 }; });
   var cash = settings.baseCash || 0, pDay = 0, pMon = 0, pDayI = 0, pMonI = 0, nDay = 0, today = [];
+  var cust = {};
+  var cb = settings.cb || {};
+  Object.keys(cb).forEach(function (k) { cust[k] = { n: cb[k].n, v: cb[k].v || 0, last: 0 }; });
+  var custOf = function (name) { var k = custKey(name); return cust[k] || (cust[k] = { n: String(name).trim(), v: 0, last: 0 }); };
   live.forEach(function (t) {
+    if (t.k === 'settle') {
+      var sc = custOf(t.cn);
+      sc.v += t.s === 'rc' ? -t.a : t.a;
+      sc.last = Math.max(sc.last, t.ts);
+      if (t.ts > (settings.baseTs || 0)) cash += t.s === 'rc' ? t.a : -t.a;
+      if (dayKey(t.ts) === tk) today.push(t);
+      return;
+    }
     var x = W[t.w], dk = dayKey(t.ts), isD = dk === tk, isM = dk.slice(0, 6) === mk, bk = baseK(t.k);
     if (t.k === 'xfer') {
       var rx = W[t.to], xc = t.c || 0;
@@ -50,6 +64,11 @@ export function compute(params) {
       if (bk === 'out') { if (isD) x.dOut += t.a; if (isM) x.mOut += t.a; }
     }
     if (t.ts > (settings.baseTs || 0)) cash += cd(t);
+    if (t.dl && t.cn && (bk === 'in' || bk === 'out')) {
+      var dc = custOf(t.cn);
+      dc.v += deferDelta(bk, t.a, t.f || 0);
+      dc.last = Math.max(dc.last, t.ts);
+    }
     var f = t.f || 0, c = t.c || 0, ins = isInsta(t.k);
     if (bk === 'in' || bk === 'out') {
       if (isM) { pMon += f - c; if (ins) pMonI += f - c; }
@@ -60,5 +79,5 @@ export function compute(params) {
     }
     if (isD) today.push(t);
   });
-  return { W: W, cash: cash, pDay: pDay, pMon: pMon, pDayI: pDayI, pMonI: pMonI, nDay: nDay, today: today };
+  return { W: W, cash: cash, pDay: pDay, pMon: pMon, pDayI: pDayI, pMonI: pMonI, nDay: nDay, today: today, cust: cust };
 }

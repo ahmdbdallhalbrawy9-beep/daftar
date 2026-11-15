@@ -12,6 +12,7 @@ import { buildPlan } from '../domain/plan.js';
 import { baseK } from '../domain/kinds.js';
 import { dayKey } from '../domain/time.js';
 import { rid } from '../domain/ids.js';
+import { entryChk } from '../domain/limits.js';
 
 /**
  * Merges new tx records into their day-docs and persists each changed
@@ -31,9 +32,13 @@ export function persistTxs(db, queue, deviceId, ledger, records) {
     (by[id] = by[id] || []).push(rec);
   });
   var ids = Object.keys(by);
+  // Capture each day-doc's current txs NOW (not inside the queued write): a later
+  // snapshot may replace the in-memory ledger before the queue gets to run.
+  var prior = {};
+  ids.forEach(function (id) { prior[id] = (ledger[id] || []).slice(); });
   return Promise.all(ids.map(function (id) {
     return queue(function () {
-      var merged = (ledger[id] || []).concat(by[id]);
+      var merged = prior[id].concat(by[id]);
       return db.collection('ledger').doc(id).set({ day: id.slice(0, 8), dev: deviceId, txs: merged });
     });
   }));
@@ -51,6 +56,8 @@ export function persistTxs(db, queue, deviceId, ledger, records) {
  * @property {'one'|'direct'|'collect'} [splitMode]
  * @property {Record<string,string>} [splits]
  * @property {string|null} [collectorId]
+ * @property {boolean} [deferred] "آجل": customer cash is settled later (single-wallet in/out only)
+ * @property {string} [customer] customer name, required when `deferred`
  */
 
 /**
@@ -71,13 +78,15 @@ export async function recordTransaction(db, queue, clock, deviceId, ledger, para
   if (!(amount > 0)) return { ok: false, error: 'invalid-amount' };
 
   var isSplit = (kind === 'out' || kind === 'iout') && params.splitMode && params.splitMode !== 'one';
-  var records;
+  var records, warn = null;
   if (isSplit) {
     var plan = buildPlan(
       { kind: kind, amount: amount, fee: fee, splitMode: params.splitMode, collectorId: params.collectorId, splits: params.splits, dest: params.dest },
       wallets, computeResult, settings,
     );
     if (plan.short) return { ok: false, error: 'insufficient' };
+    if (plan.stuckM) return { ok: false, error: 'stuck-month' };
+    if (plan.stuckD) warn = 'd';
     if (!plan.ok) return { ok: false, error: params.splitMode === 'collect' ? 'choose-collector' : 'split-mismatch' };
     var base = clock.now(), g = rid('g');
     records = plan.legs.map(function (l, i) {
@@ -97,14 +106,23 @@ export async function recordTransaction(db, queue, clock, deviceId, ledger, para
     if (x0 && ((bk === 'out' && x0.bal < amount + cost - 0.005) || (bk === 'cashout' && x0.bal < amount - 0.005))) {
       return { ok: false, error: 'insufficient' };
     }
+    if (x0 && (bk === 'topup' || bk === 'in') && amount > 0) {
+      var ec = entryChk(x0, settings, amount);
+      if (ec.m) { if (bk === 'topup') return { ok: false, error: 'stuck-month' }; warn = 'm'; }
+      else if (ec.d) warn = 'd';
+    }
+    var deferred = !!params.deferred && (bk === 'in' || bk === 'out');
+    var cname = (params.customer || '').trim();
+    if (deferred && !cname) return { ok: false, error: 'need-name' };
     var rec = { id: rid('t'), ts: clock.now(), k: kind, w: params.selectedWalletId, a: amount, f: fee, n: note };
+    if (deferred) { rec.dl = 1; rec.cn = cname; }
     if (bk === 'out') { if (cost) rec.c = cost; if (kind === 'out') rec.d = params.dest; }
     if (kind === 'itopup') rec.m = fee === 0 ? 'atm' : 'fawry';
     records = [rec];
   }
 
   await persistTxs(db, queue, deviceId, ledger, records);
-  return { ok: true, records: records };
+  return { ok: true, records: records, warn: warn };
 }
 
 /**

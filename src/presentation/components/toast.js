@@ -11,5 +11,5 @@ export function toast(msg, bad) {
   var b = $('#toastBox');
   b.innerHTML = '<div class="toast' + (bad ? ' bad' : '') + '" role="status">' + esc(msg) + '</div>';
   clearTimeout(toastT);
-  toastT = setTimeout(function () { b.innerHTML = ''; }, 2800);
+  toastT = setTimeout(function () { b.innerHTML = ''; }, msg.length > 70 ? 6000 : 2800);
 }

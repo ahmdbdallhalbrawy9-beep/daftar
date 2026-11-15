@@ -6,6 +6,7 @@
 // (via `resolveCollector` in wallets.js) before calling either function here.
 import { walletCost, xferCost, maxAmt } from './money.js';
 import { NUM } from './numbers.js';
+import { roomOf } from './limits.js';
 
 /**
  * @typedef {object} PlanParams
@@ -29,7 +30,7 @@ export function buildPlan(params, wallets, computeResult, settings) {
     splitMode = params.splitMode, collectorId = params.collectorId,
     splits = params.splits || {}, dest = params.dest;
   var ws = wallets, C = computeResult;
-  var r = { legs: [], sum: 0, ctot: 0, short: false, bad: {}, ok: false, coll: splitMode === 'collect', own: 0, diff: 0 };
+  var r = { stuckM: false, stuckD: false, legs: [], sum: 0, ctot: 0, short: false, bad: {}, ok: false, coll: splitMode === 'collect', own: 0, diff: 0 };
   var byId = {};
   ws.forEach(function (w) { byId[w.id] = w; });
   var d = kind === 'out' ? dest : undefined;
@@ -75,7 +76,13 @@ export function buildPlan(params, wallets, computeResult, settings) {
       ws.forEach(function (w) { if (w.id !== collectorId) cap2 += maxAmt(C.W[w.id].bal, function (q) { return xferCost(w, q, settings); }); });
       if (cap2 < amount + cf - 0.005) r.short = true;
     }
-    r.ok = !!X && amount > 0 && r.sum > 0 && r.own >= -0.005 && !r.short;
+    // Stuck check on the collector: what is left on it after sending `amount` must fit its send room.
+    if (X && amount > 0 && r.sum > 0) {
+      var rm = roomOf(C.W[X.id], settings), left = C.W[X.id].bal + r.sum - amount - cf;
+      if (left > Math.max(0, rm.roomM - amount)) r.stuckM = true;
+      else if (left > Math.max(0, rm.roomD - amount)) r.stuckD = true;
+    }
+    r.ok = !!X && amount > 0 && r.sum > 0 && r.own >= -0.005 && !r.short && !r.stuckM;
   }
   return r;
 }
