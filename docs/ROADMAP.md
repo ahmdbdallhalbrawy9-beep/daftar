@@ -154,7 +154,7 @@ Not allowed: changing any calculation or data shape. Font: the system font stack
 
 **Done when:** every component follows `components.md` · touch targets ≥ 44px.
 
-### Phase 10 — Screens ⬜
+### Phase 10 — Screens 🔄
 
 - [ ] عملية: two columns on desktop (the form + the suggested wallet and summary).
 - [ ] اليوم: tiles on top, cash count and close next to today's operations.
