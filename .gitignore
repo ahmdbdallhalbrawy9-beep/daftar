@@ -1,0 +1,21 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# dependencies (none committed; ignore if ever installed locally)
+node_modules/
+
+# local Capacitor/Android build output — build-apk.yml generates this in
+# CI only (in app/); never commit it if that build is ever run locally
+/app/
+/www/
+/android/
+
+# ad hoc debug/test scripts and their output from UI/CDP review sessions —
+# use the session scratchpad (outside the repo) instead, never commit these
+/scratchpad/
+/shots/
+debug_*.mjs
+debug_*.js
+cdp_*.mjs
+*.log

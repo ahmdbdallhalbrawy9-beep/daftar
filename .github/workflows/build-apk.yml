@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -154,3 +157,26 @@ jobs:
         with:
           name: daftar-apk
           path: app/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish a direct-download release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK=app/android/app/build/outputs/apk/debug/app-debug.apk
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="v1.${{ github.run_number }}"
+            NAME="daftar-v1.${{ github.run_number }}.apk"
+            cp "$APK" "$NAME"
+            gh release create "$TAG" "$NAME" --title "$TAG" --generate-notes
+            # keep only the latest 5 v1.* releases
+            gh release list --limit 100 --json tagName,createdAt \
+              --jq '[.[] | select(.tagName | startswith("v1."))] | sort_by(.createdAt) | reverse | .[5:][] | .tagName' \
+              | while read -r old; do gh release delete "$old" --yes --cleanup-tag; done
+          else
+            TAG="preview"
+            NAME="daftar-preview.apk"
+            cp "$APK" "$NAME"
+            gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "Preview build" \
+              --notes "Always the latest test build from a PR or a manual run — not a stable release." --prerelease
+            gh release upload "$TAG" "$NAME" --clobber
+          fi
