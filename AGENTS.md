@@ -40,7 +40,7 @@ pre-refactor snapshot of the old single-file app is `docs/inventory.md`.
 | `sw.js` | Service worker. Caches app files + Firebase SDK for offline |
 | `manifest.webmanifest` | PWA manifest (`lang: ar`, `dir: rtl`, theme `#0d6b54`) |
 | `firebase-config.js` | Public Firebase web config (not a secret; security is in Firestore rules) |
-| `icon-*.png` | App icons |
+| `assets/icon-*.png` | App icons |
 | `.github/workflows/build-apk.yml` | Debug APK build — manual (`workflow_dispatch`), and automatic on push/PR into `main` |
 | `.github/workflows/ci.yml` | `node --test` + `node scripts/check-precache.mjs` on every PR and on push to `saeed-develop`/`main` |
 | `README.md` | Minimal GitHub landing page |
