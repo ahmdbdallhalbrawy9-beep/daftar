@@ -102,7 +102,7 @@ Fixed rules: native ES modules (`<script type="module">`) · **no bundler, no np
 **Done when:** `node --test tests/` and `node scripts/check-precache.mjs` pass · the app opens offline after the first load.
 ⛔ **STOP** — the owner reviews and merges `refactor/clean-arch` into `saeed-develop`. *(Done 2026-11-15: merged and pushed.)*
 
-### Phase 6.5 — GitHub automation ⬜
+### Phase 6.5 — GitHub automation 🔄
 
 Branch: `chore/github-automation` from `saeed-develop`. From here on, the agent runs the GitHub side of the work (see `AGENTS.md` → Git).
 
