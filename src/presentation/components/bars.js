@@ -4,15 +4,21 @@
 // confirmed in docs/inventory.md §5 — and is dropped, not moved.)
 import { fmt } from '../formatters.js';
 
-/** @param {string} lbl @param {number} rem @param {number} lim */
-export function remBar(lbl, rem, lim) {
+/** @param {string} lbl @param {number} rem @param {number} lim @param {string} [note] */
+export function remBar(lbl, rem, lim, note) {
   var r = Math.max(0, rem), pc = lim > 0 ? Math.max(0, Math.min(100, r / lim * 100)) : 0;
   if (r > 0 && pc < 2) pc = 2;
   var cls = r <= 0 ? 'full' : pc <= 25 ? 'hi' : '';
-  return '<div class="lim1"><div class="small num"><span>' + lbl + '</span><span>متبقي ' + fmt(r) + (rem < 0 ? ' (تجاوز ' + fmt(-rem) + ')' : '') + ' من ' + fmt(lim) + '</span></div><div class="bar"><i class="' + cls + '" style="width:' + pc.toFixed(2) + '%"></i></div></div>';
+  return '<div class="lim1"><div class="small num"><span>' + lbl + '</span><span>متبقي ' + fmt(r) + (rem < 0 ? ' (تجاوز ' + fmt(-rem) + ')' : '') + ' من ' + fmt(lim) + (note || '') + '</span></div><div class="bar"><i class="' + cls + '" style="width:' + pc.toFixed(2) + '%"></i></div></div>';
 }
 
-/** @param {string} label @param {number} inn @param {number} out @param {number} lim */
-export function limBar(label, inn, out, lim) {
-  return '<div class="lim" style="gap:5px"><div class="small"><b>' + label + '</b></div>' + remBar('إرسال (تحويل)', lim - out, lim) + remBar('استلام (سحب)', lim - inn, lim) + '</div>';
+/**
+ * The receive bar shows what can really still be received: the official room, or less when
+ * the wallet could not send that money out again (send room minus the balance it already holds).
+ * @param {string} label @param {number} inn @param {number} out @param {number} lim @param {number} [bal]
+ */
+export function limBar(label, inn, out, lim, bal) {
+  var off = lim - inn, eff = bal == null ? off : Math.min(off, lim - out - bal);
+  var recv = eff < off ? remBar('استلام (سحب)', Math.max(0, eff), lim, ' · محدود بالتحويل') : remBar('استلام (سحب)', off, lim);
+  return '<div class="lim" style="gap:5px"><div class="small"><b>' + label + '</b></div>' + remBar('إرسال (تحويل)', lim - out, lim) + recv + '</div>';
 }

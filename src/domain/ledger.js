@@ -25,6 +25,7 @@ export function daySum(list) {
   list.forEach(function (t) {
     var bk = baseK(t.k), f = t.f || 0, c = t.c || 0;
     if (t.k === 'xfer') { r.wf += c; r.pf -= c; return; }
+    if (t.k === 'settle') { r.cash += t.s === 'rc' ? t.a : -t.a; return; }
     if (bk === 'in' || bk === 'out') { r.pf += f - c; r.cf += f; r.wf += c; if (!t.nc) r.n++; }
     else if (f && (bk === 'topup' || bk === 'cashout')) r.pf -= f;
     r.cash += cd(t);

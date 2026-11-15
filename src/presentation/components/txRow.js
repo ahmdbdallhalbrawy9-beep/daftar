@@ -20,6 +20,11 @@ function amtHTML(n, kind) { return '<div class="amt' + (isCashIn(kind) ? ' in' :
  */
 export function groupHTML(L, C, withDel, delId) {
   var t = L[0], pending = withDel && delId === t.id;
+  if (t.k === 'settle') {
+    var sb = withDel ? '<button class="del" data-del="' + esc(t.id) + '">' + (pending ? 'تأكيد الإلغاء' : 'إلغاء') + '</button>' : '';
+    return '<div class="tx"><div><div class="t1">تسوية آجل · ' + esc(t.cn) + '</div><div class="t2 num">' + hhmm(t.ts) + ' · ' + (t.s === 'rc' ? 'استلمت كاش' : 'دفعت كاش') + '</div></div>' +
+      '<div style="display:flex;align-items:center;gap:4px"><div class="amt' + (t.s === 'rc' ? ' in' : '') + '">' + fmt(t.a) + '</div>' + sb + '</div></div>';
+  }
   var nm0 = function (u) { var w = C.W[u.w]; return w ? w.w.name : 'محفظة محذوفة'; };
   var btn = withDel ? '<button class="del" data-del="' + esc(t.id) + '">' + (pending ? 'تأكيد الإلغاء' : 'إلغاء') + '</button>' : '';
   if (L.length > 1 || t.g) {
@@ -40,6 +45,6 @@ export function groupHTML(L, C, withDel, delId) {
     return '<div class="tx"><div><div class="t1">' + title + '</div><div class="t2 num">' + hhmm(t.ts) + (ftot ? ' · عمولة ' + fmt(ftot) : '') + (ctot ? ' · رسوم محافظ ' + fm2(ctot) : '') + (t.n ? ' · ' + esc(t.n) : '') + '</div><div class="t2">' + det + '</div></div>' +
       '<div style="display:flex;align-items:center;gap:4px">' + amtHTML(amt, t.k) + btn + '</div></div>';
   }
-  return '<div class="tx"><div><div class="t1">' + KIND[t.k] + ' · ' + esc(nm0(t)) + '</div><div class="t2 num">' + hhmm(t.ts) + (t.f ? ' · ' + ((baseK(t.k) === 'in' || baseK(t.k) === 'out') ? 'عمولة' : 'خسارة') + ' ' + fmt(t.f) : '') + (t.c ? ' · رسوم محفظة ' + fm2(t.c) : '') + (t.m ? ' · ' + (t.m === 'atm' ? 'ATM' : 'فوري') : '') + (t.n ? ' · ' + esc(t.n) : '') + '</div></div>' +
+  return '<div class="tx"><div><div class="t1">' + KIND[t.k] + ' · ' + esc(nm0(t)) + '</div><div class="t2 num">' + hhmm(t.ts) + (t.f ? ' · ' + ((baseK(t.k) === 'in' || baseK(t.k) === 'out') ? 'عمولة' : 'خسارة') + ' ' + fmt(t.f) : '') + (t.c ? ' · رسوم محفظة ' + fm2(t.c) : '') + (t.m ? ' · ' + (t.m === 'atm' ? 'ATM' : 'فوري') : '') + (t.n ? ' · ' + esc(t.n) : '') + (t.dl ? ' · آجل: ' + esc(t.cn) : '') + '</div></div>' +
     '<div style="display:flex;align-items:center;gap:4px">' + amtHTML(t.a, t.k) + btn + '</div></div>';
 }

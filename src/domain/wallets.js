@@ -3,6 +3,7 @@
 // replacement for index.html's `ensureCol`, which today reads+writes `UI.col`
 // directly — see docs/ARCHITECTURE.md §3.
 import { isInsta } from './kinds.js';
+import { roomOf } from './limits.js';
 
 /**
  * Active wallets matching the service (vf vs insta) a kind operates on.
@@ -20,11 +21,18 @@ export function splitWallets(kind, wallets) {
  * @param {Array<{id:string}>} wallets split-eligible wallets (already filtered by `splitWallets`)
  * @param {{W: Record<string,{bal:number}>}} computeResult
  * @param {string|null|undefined} collectorId the currently chosen collector, if any
+ * @param {number} [amount] when > 0 (with `settings`), prefer wallets whose monthly send room can still cover it
+ * @param {{defDay:number,defMon:number}} [settings]
  * @returns {string|null}
  */
-export function resolveCollector(wallets, computeResult, collectorId) {
+export function resolveCollector(wallets, computeResult, collectorId, amount, settings) {
   if (collectorId && wallets.some(function (w) { return w.id === collectorId; })) return collectorId;
+  var pool = wallets;
+  if (amount && amount > 0 && settings) {
+    var fit = wallets.filter(function (w) { return roomOf(computeResult.W[w.id], settings).roomM >= amount; });
+    if (fit.length) pool = fit;
+  }
   var b = null;
-  wallets.forEach(function (w) { if (!b || computeResult.W[w.id].bal > computeResult.W[b.id].bal) b = w; });
+  pool.forEach(function (w) { if (!b || computeResult.W[w.id].bal > computeResult.W[b.id].bal) b = w; });
   return b ? b.id : null;
 }

@@ -3,6 +3,7 @@
 // `S.wallets`/`S.settings` directly today; both are explicit params here —
 // see docs/ARCHITECTURE.md §3.
 import { baseK, isInsta } from './kinds.js';
+import { entryChk } from './limits.js';
 
 /**
  * @param {string} kind
@@ -21,16 +22,26 @@ export function rank(kind, a, wallets, computeResult, settings, cst) {
   }).map(function (w) {
     var x = C.W[w.id], dl = w.dayLimit || settings.defDay, ml = w.monthLimit || settings.defMon, why = [], score = 0;
     var u = bk === 'in' ? [x.dIn, x.mIn] : [x.dOut, x.mOut];
-    var remD = dl - u[0], remM = ml - u[1];
+    var remD = dl - u[0], remM = ml - u[1], soft = 0;
     if (limited) {
       if (bk === 'out' && x.bal < a + (cst || 0)) why.push('الرصيد مش كفاية');
       if (remD < a) why.push('الليميت اليومي');
       if (remM < a) why.push('الليميت الشهري');
       score = Math.min(remD, remM);
+      if (bk === 'in' && a > 0) {
+        var ec = entryChk(x, settings, a);
+        if (ec.m) why.push('هتقف عليها (ليميت التحويل الشهري)'); else if (ec.d) soft = 1;
+      }
     } else if (bk === 'cashout') { if (x.bal < a) why.push('الرصيد مش كفاية'); score = x.bal; }
-    else score = -x.bal;
-    return { w: w, x: x, remD: remD, remM: remM, why: why, fits: !why.length, score: score };
+    else {
+      score = -x.bal;
+      if (bk === 'topup' && a > 0) {
+        var et = entryChk(x, settings, a);
+        if (et.m) why.push('هتقف عليها (ليميت التحويل الشهري)'); else if (et.d) soft = 1;
+      }
+    }
+    return { w: w, x: x, remD: remD, remM: remM, why: why, fits: !why.length, soft: soft, score: score };
   });
-  list.sort(function (p, q) { return (q.fits - p.fits) || (q.score - p.score); });
+  list.sort(function (p, q) { return (q.fits - p.fits) || (p.soft - q.soft) || (q.score - p.score); });
   return list;
 }

@@ -77,6 +77,18 @@
         <div class="card">
           <label for="note">ملاحظة (اختياري)</label>
           <input id="note" autocomplete="off" placeholder="اسم الزبون أو آخر أرقام من رقمه">
+          <details class="xtra" id="xtra" style="display:none"><summary>خيارات إضافية</summary>
+            <div class="xtra-body">
+              <label class="check"><input type="checkbox" id="dlOn"> آجل (الكاش هيتسلّم بعدين)</label>
+              <div id="dlBox" style="display:none;flex-direction:column;gap:8px">
+                <label for="dlName">اسم العميل</label>
+                <input id="dlName" list="custList" autocomplete="off" placeholder="اكتب اسم العميل">
+                <datalist id="custList"></datalist>
+                <label for="dlLim">أقصى آجل للعميل ده (اختياري)</label>
+                <input id="dlLim" inputmode="numeric" autocomplete="off" placeholder="من غير حد">
+              </div>
+            </div>
+          </details>
           <button id="save" class="btn-primary" disabled>تسجيل العملية</button>
         </div>
       </div>
@@ -103,6 +115,7 @@
     <div id="bkNotice"></div>
     <div id="openCard"></div>
     <div class="grid" id="tiles"></div>
+    <div id="custCard"></div>
     <div class="screen-split reverse">
       <div class="card">
         <b>الجرد والإقفال</b>
@@ -113,6 +126,7 @@
           <span class="diff" id="diffCash"></span>
         </div>
         <div id="invRows"></div>
+        <div class="small num" id="invDefer"></div>
         <button class="btn-primary" id="closeBtn">حفظ الجرد وإقفال اليوم</button>
       </div>
       <div class="screen-aside">

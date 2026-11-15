@@ -17,8 +17,9 @@ export function wd(t) {
   return b === 'in' || b === 'topup' ? t.a : -(t.a + (b === 'out' ? (t.c || 0) : 0));
 }
 
-/** @param {{k:string,a:number,f?:number}} t @returns {number} cash-drawer delta */
+/** @param {{k:string,a:number,f?:number,dl?:number}} t @returns {number} cash-drawer delta (0 for a deferred cash tx) */
 export function cd(t) {
+  if (t.dl) return 0;
   var b = baseK(t.k), f = t.f || 0;
   return b === 'in' ? -(t.a - f) : b === 'out' ? t.a + f : b === 'topup' ? -(t.a + f) : t.a - f;
 }
