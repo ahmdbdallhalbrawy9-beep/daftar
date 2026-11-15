@@ -51,7 +51,7 @@ export function renderOpen(store, C) {
   $('#openBanner').innerHTML = (!opened && writable(state) && state.wallets.length)
     ? '<div class="notice" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>لسه ما سجّلتش نقدية الدرج النهارده</span><button class="btn-ghost" data-oc="1" style="flex:0 0 auto;background:var(--surface)">إدخال نقدية الدرج</button></div>'
     : '';
-  $('#openCard').innerHTML = '<div class="card"><div class="row" style="justify-content:space-between"><div><b>نقدية الدرج أول اليوم</b><div class="small num">' + (opened ? fmt(state.settings.openAmt || 0) + ' ج · اتسجّلت ' + hhmm(state.settings.openTs || Date.now()) : 'لسه ما اتسجّلتش النهارده') + '</div></div><button class="btn-primary" data-oc="1" style="padding:10px 14px;font-size:14px;flex:0 0 auto">إدخال نقدية الدرج</button></div></div>';
+  $('#openCard').innerHTML = '<div class="card"><div class="row" style="justify-content:space-between"><div><b>نقدية الدرج أول اليوم</b><div class="small num">' + (opened ? fmt(state.settings.openAmt || 0) + ' ج · اتسجّلت ' + hhmm(state.settings.openTs || Date.now()) : 'لسه ما اتسجّلتش النهارده') + '</div></div><button class="btn" data-oc="1" style="padding:10px 14px;font-size:14px;flex:0 0 auto">إدخال نقدية الدرج</button></div></div>';
 }
 
 /** @param {import('../../domain/compute.js').ComputeResult} C */
