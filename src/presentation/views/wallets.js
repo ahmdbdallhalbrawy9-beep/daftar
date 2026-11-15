@@ -52,7 +52,7 @@ export function openWalletSheet(store, ctx, C, id) {
     '<div><label for="sDay">ليميت يومي</label><input id="sDay" inputmode="numeric" value="' + (w ? w.dayLimit || '' : state.settings.defDay) + '"></div>' +
     '<div><label for="sMon">ليميت شهري</label><input id="sMon" inputmode="numeric" value="' + (w ? w.monthLimit || '' : state.settings.defMon) + '"></div></div>' +
     '<label class="check"><input type="checkbox" id="sActive"' + (!w || w.active !== false ? ' checked' : '') + '> شغّالة (تظهر في الاقتراحات)</label>' +
-    '<div class="row"><button class="ghost" id="sCancel">إلغاء</button><button class="primary" id="sSave" style="padding:11px">حفظ</button></div></div>';
+    '<div class="row"><button class="btn-ghost" id="sCancel">إلغاء</button><button class="btn-primary" id="sSave" style="padding:11px">حفظ</button></div></div>';
   openSheet(html, function () {
     $('#sType').value = w ? w.type || 'vf' : (state.ui.svc === 'insta' ? 'insta' : 'vf');
     $('#sCancel').onclick = closeSheet;

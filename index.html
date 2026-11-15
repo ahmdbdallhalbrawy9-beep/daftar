@@ -81,12 +81,12 @@
     <div class="card">
       <label for="note">ملاحظة (اختياري)</label>
       <input id="note" autocomplete="off" placeholder="اسم الزبون أو آخر أرقام من رقمه">
-      <button id="save" class="primary" disabled>تسجيل العملية</button>
+      <button id="save" class="btn-primary" disabled>تسجيل العملية</button>
     </div>
   </section>
 
   <section id="tab-wallets" class="tab">
-    <div class="page-head"><div><h2 class="page-title">المحافظ</h2><p class="sub">كل المحافظ وأرصدتها</p></div><button class="ghost" id="addWallet" style="flex:0 0 auto">+ محفظة</button></div>
+    <div class="page-head"><div><h2 class="page-title">المحافظ</h2><p class="sub">كل المحافظ وأرصدتها</p></div><button class="btn" id="addWallet" style="flex:0 0 auto">+ محفظة</button></div>
     <p class="small">الليميت اليومي بيتجدد 12 بالليل، والشهري أول كل شهر الساعة 12، بتوقيت القاهرة.</p>
     <div class="seg" id="svcW"></div>
     <div class="small num" id="wTotal"></div>
@@ -107,7 +107,7 @@
         <span class="diff" id="diffCash"></span>
       </div>
       <div id="invRows"></div>
-      <button class="primary" id="closeBtn">حفظ الجرد وإقفال اليوم</button>
+      <button class="btn-primary" id="closeBtn">حفظ الجرد وإقفال اليوم</button>
     </div>
     <h2>عمليات اليوم</h2>
     <div class="chips" id="fltChips"></div>
@@ -120,7 +120,7 @@
     <div class="page-head"><div><h2 class="page-title">السجل</h2><p class="sub">عمليات الأيام اللي فاتت</p></div></div>
     <div class="card">
       <b>سجل العمليات</b>
-      <div class="row"><button class="ghost" id="hPrev" style="flex:0 0 auto">السابق</button><input type="date" id="hDate"><button class="ghost" id="hNext" style="flex:0 0 auto">التالي</button></div>
+      <div class="row"><button class="btn-ghost" id="hPrev" style="flex:0 0 auto">السابق</button><input type="date" id="hDate"><button class="btn-ghost" id="hNext" style="flex:0 0 auto">التالي</button></div>
       <div class="chips" id="hDays"></div>
       <div class="small" id="hLabel"></div>
     </div>
@@ -149,7 +149,7 @@
         <div><label for="setDay">ليميت يومي (محفظة جديدة)</label><input id="setDay" inputmode="numeric"></div>
         <div><label for="setMon">ليميت شهري (محفظة جديدة)</label><input id="setMon" inputmode="numeric"></div>
       </div>
-      <button class="ghost" id="saveSet">حفظ</button>
+      <button class="btn" id="saveSet">حفظ</button>
     </div>
     <div class="card">
       <b>رسوم المحافظ (اللي بتتخصم منك)</b>
@@ -162,17 +162,17 @@
         <div><label for="setInP">إنستاباي %</label><input id="setInP" inputmode="decimal"></div>
         <div><label for="setInC">حد أقصى للمعاملة (ج)</label><input id="setInC" inputmode="decimal"></div>
       </div>
-      <button class="ghost" id="saveRates">حفظ الرسوم</button>
+      <button class="btn" id="saveRates">حفظ الرسوم</button>
     </div>
     <div class="card" id="smsCard">
       <b>قراءة رسائل فودافون كاش</b>
       <p class="small" id="smsInfo"></p>
-      <button class="ghost" id="smsScan">فحص الرسائل الآن</button>
+      <button class="btn" id="smsScan">فحص الرسائل الآن</button>
     </div>
     <div class="card">
       <b>مسح المعاملات</b>
       <p class="small">بيمسح كل العمليات وسجل الإقفالات من كل الموبايلات. المحافظ وأرصدتها الحالية والنقدي في الدرج بيفضلوا زي ما هم، وتبدأ منهم من جديد.</p>
-      <button class="ghost" id="wipeBtn" style="color:var(--bad);border-color:var(--bad)">مسح كل المعاملات</button>
+      <button class="btn-danger" id="wipeBtn">مسح كل المعاملات</button>
     </div>
     <div class="card">
       <b>مسح جميع البيانات</b>
@@ -180,37 +180,37 @@
       <div id="pwSetBox" style="display:flex;flex-direction:column;gap:8px">
         <label for="pwNew">حدد كلمة سر للمسح (4 حروف أو أرقام على الأقل)</label>
         <input id="pwNew" type="password" autocomplete="off">
-        <button class="ghost" id="pwSet">تعيين كلمة السر</button>
+        <button class="btn" id="pwSet">تعيين كلمة السر</button>
       </div>
       <div id="pwUseBox" style="display:flex;flex-direction:column;gap:8px" hidden>
         <label for="pwIn">كلمة السر</label>
         <input id="pwIn" type="password" autocomplete="off">
-        <button class="ghost" id="wipeAll" style="color:var(--bad);border-color:var(--bad)">مسح جميع البيانات</button>
+        <button class="btn-danger" id="wipeAll">مسح جميع البيانات</button>
         <details><summary class="small">تغيير كلمة السر</summary>
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
             <input id="pwOld" type="password" autocomplete="off" placeholder="كلمة السر الحالية">
             <input id="pwNew2" type="password" autocomplete="off" placeholder="كلمة السر الجديدة">
-            <button class="ghost" id="pwChange">تغيير</button>
+            <button class="btn" id="pwChange">تغيير</button>
           </div></details>
       </div>
     </div>
     <div class="card" id="acctCard" hidden>
       <b>الحساب</b>
       <p class="small" id="acctEmail"></p>
-      <button class="ghost" id="logoutBtn">تسجيل الخروج</button>
+      <button class="btn" id="logoutBtn">تسجيل الخروج</button>
     </div>
     <div class="card" id="installCard" hidden>
       <b>تثبيت التطبيق</b>
       <p class="small">ثبّته على الشاشة الرئيسية عشان يفتح زي أي تطبيق ويشتغل من غير نت.</p>
-      <button class="primary" id="installBtn" style="padding:11px">تثبيت التطبيق</button>
+      <button class="btn-primary" id="installBtn" style="padding:11px">تثبيت التطبيق</button>
     </div>
     <div class="card">
       <b>نسخة احتياطية</b>
       <p class="small" id="bkInfo"></p>
-      <button class="ghost" id="bkExport">تنزيل نسخة احتياطية</button>
-      <label class="ghost" for="bkFile" style="text-align:center;cursor:pointer">استرجاع من نسخة</label>
+      <button class="btn" id="bkExport">تنزيل نسخة احتياطية</button>
+      <label class="btn" for="bkFile" style="text-align:center;cursor:pointer">استرجاع من نسخة</label>
       <input id="bkFile" type="file" accept=".json,application/json" hidden>
-      <button class="ghost" id="bkConfirm" hidden style="color:var(--bad);border-color:var(--bad)">تأكيد: استبدال كل البيانات الحالية بالنسخة</button>
+      <button class="btn-danger" id="bkConfirm" hidden>تأكيد: استبدال كل البيانات الحالية بالنسخة</button>
     </div>
     <div class="card">
       <b>مكان البيانات</b>
@@ -242,8 +242,8 @@
     <label for="aPass">كلمة السر</label>
     <input id="aPass" type="password" autocomplete="current-password" dir="ltr">
     <div id="authMsg" class="notice" hidden></div>
-    <button class="primary" id="loginBtn">دخول</button>
-    <button class="ghost" id="signupBtn">إنشاء حساب جديد</button>
+    <button class="btn-primary" id="loginBtn">دخول</button>
+    <button class="btn" id="signupBtn">إنشاء حساب جديد</button>
     <button class="more" id="resetBtn" style="padding:4px">نسيت كلمة السر؟</button>
   </div>
 </div></div>

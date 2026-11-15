@@ -114,13 +114,15 @@ export async function doWipeAction(store, ctx, C) {
   if (!state.ui.wipe) {
     store.patchUI({ wipe: true });
     b.textContent = 'اضغط تاني للتأكيد: مسح كل المعاملات نهائياً';
+    b.classList.add('armed');
     clearTimeout(wipeT);
-    wipeT = setTimeout(function () { store.patchUI({ wipe: false }); b.textContent = 'مسح كل المعاملات'; }, 5000);
+    wipeT = setTimeout(function () { store.patchUI({ wipe: false }); b.textContent = 'مسح كل المعاملات'; b.classList.remove('armed'); }, 5000);
     return;
   }
   store.patchUI({ wipe: false });
   clearTimeout(wipeT);
   b.textContent = 'مسح كل المعاملات';
+  b.classList.remove('armed');
   if (!writable(state)) { toast('استنى لحد ما البيانات تتحمّل', true); return; }
   await wipeTransactions(ctx.db, ctx.queue, ctx.clock, C, state.wallets, state.settings, state);
   toast('اتمسحت كل المعاملات');
