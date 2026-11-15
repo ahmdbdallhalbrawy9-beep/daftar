@@ -21,7 +21,7 @@ import { renderHist } from './presentation/views/history.js';
 import {
   renderSet, saveRatesAction, saveSetAction, pwSetAction, pwChangeAction,
   wipeAllAction, doWipeAction, bkExportAction, bkFileChangeAction, bkConfirmAction,
-  logoutAction, installAction,
+  logoutAction, installAction, setThemeAction,
 } from './presentation/views/settings.js';
 import { showAuth, authGoAction, authResetAction } from './presentation/views/login.js';
 
@@ -42,6 +42,7 @@ import { initFirebase, makeFirebaseAuth } from './infrastructure/firebaseAuth.js
 import { getSmsPlugin } from './infrastructure/smsPlugin.js';
 import { registerServiceWorker } from './infrastructure/serviceWorker.js';
 import { registerInstallPrompt } from './infrastructure/install.js';
+import { initTheme } from './presentation/theme.js';
 
 var store = createStore();
 var deviceId = getDeviceId();
@@ -63,6 +64,7 @@ function renderAll() {
   var state = store.getState();
   var C = currentCompute();
   renderSyncPill($('#syncPill'), state);
+  renderSyncPill($('#syncPillWide'), state);
   $('#dateLine').textContent = new Date().toLocaleDateString('ar-EG-u-nu-latn', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long' });
   renderTx(store, C);
   renderWallets(store, C);
@@ -142,6 +144,7 @@ document.addEventListener('click', function (e) {
   if (t.id === 'signupBtn') return authGoAction(getCtx(), 'signup');
   if (t.id === 'resetBtn') return authResetAction(getCtx());
   if (t.id === 'installBtn') return installAction(store);
+  if (t.dataset.themeChoice) return setThemeAction(store, t.dataset.themeChoice);
   if (t.id === 'saveRates') return saveRatesAction(store, getCtx());
   if (t.id === 'pwSet') return pwSetAction(store, getCtx());
   if (t.id === 'pwChange') return pwChangeAction(store, getCtx());
@@ -204,6 +207,7 @@ function initCloud() {
 /* ---------- boot ---------- */
 store.subscribe(renderAll);
 renderAll();
+initTheme();
 (async function () {
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
   registerServiceWorker();

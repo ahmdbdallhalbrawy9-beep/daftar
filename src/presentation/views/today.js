@@ -36,7 +36,7 @@ export function renderGuide(store) {
     li(!noPh, 'اكتب رقم كل محفظة من تبويب "المحافظ" ← تعديل' + (noPh ? ' (باقي ' + noPh + ')' : '')) +
     li(false, 'اظبط رصيد كل محفظة من تبويب "اليوم" ← الجرد، عشان الرسائل تتعرف على المحفظة') +
     li(opened, 'سجّل "إدخال نقدية الدرج" أول كل يوم') +
-    '<button class="ghost" id="guideOk">تمام، فهمت</button></div>';
+    '<button class="btn" id="guideOk">تمام، فهمت</button></div>';
 }
 
 export function dismissGuideAction() {
@@ -49,9 +49,9 @@ export function renderOpen(store, C) {
   var state = store.getState();
   var tk = dayKey(Date.now()), opened = state.settings.openDay === tk;
   $('#openBanner').innerHTML = (!opened && writable(state) && state.wallets.length)
-    ? '<div class="notice" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>لسه ما سجّلتش نقدية الدرج النهارده</span><button class="ghost" data-oc="1" style="flex:0 0 auto;background:var(--surface)">إدخال نقدية الدرج</button></div>'
+    ? '<div class="notice" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>لسه ما سجّلتش نقدية الدرج النهارده</span><button class="btn-ghost" data-oc="1" style="flex:0 0 auto;background:var(--surface)">إدخال نقدية الدرج</button></div>'
     : '';
-  $('#openCard').innerHTML = '<div class="card"><div class="row" style="justify-content:space-between"><div><b>نقدية الدرج أول اليوم</b><div class="small num">' + (opened ? fmt(state.settings.openAmt || 0) + ' ج · اتسجّلت ' + hhmm(state.settings.openTs || Date.now()) : 'لسه ما اتسجّلتش النهارده') + '</div></div><button class="primary" data-oc="1" style="padding:10px 14px;font-size:14px;flex:0 0 auto">إدخال نقدية الدرج</button></div></div>';
+  $('#openCard').innerHTML = '<div class="card"><div class="row" style="justify-content:space-between"><div><b>نقدية الدرج أول اليوم</b><div class="small num">' + (opened ? fmt(state.settings.openAmt || 0) + ' ج · اتسجّلت ' + hhmm(state.settings.openTs || Date.now()) : 'لسه ما اتسجّلتش النهارده') + '</div></div><button class="btn" data-oc="1" style="flex:0 0 auto">إدخال نقدية الدرج</button></div></div>';
 }
 
 /** @param {import('../../domain/compute.js').ComputeResult} C */
@@ -59,7 +59,7 @@ export function openCashSheet(store, ctx, C) {
   var html = '<div class="sheet" role="dialog" aria-label="نقدية الدرج">' +
     '<b>إدخال نقدية الدرج (أول اليوم)</b><p class="small">اكتب الكاش اللي في الدرج قبل أول عملية النهارده. الرقم ده هو نقطة بداية حساب "النقدي المتوقع في الدرج" طول اليوم.</p>' +
     '<label for="ocAmt">النقدية في الدرج (جنيه)</label><input id="ocAmt" class="big" inputmode="decimal" autocomplete="off" value="' + Math.round(C.cash) + '">' +
-    '<div class="row"><button class="ghost" id="ocCancel">إلغاء</button><button class="primary" id="ocSave" style="padding:11px">حفظ</button></div></div>';
+    '<div class="row"><button class="btn-ghost" id="ocCancel">إلغاء</button><button class="btn-primary" id="ocSave">حفظ</button></div></div>';
   openSheet(html, function () {
     $('#ocCancel').onclick = closeSheet;
     $('#ocSave').onclick = function () { saveOpenCashAction(store, ctx); };

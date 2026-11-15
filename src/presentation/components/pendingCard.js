@@ -34,7 +34,7 @@ export function renderPend(store, computeResult, smsAvailable) {
   store.patchUI({ pendKey: key });
   if (!items.length && !smsAvailable) { box.innerHTML = ''; return; }
   var ws = state.wallets.filter(function (w) { return w.active !== false && w.type !== 'insta'; });
-  var h = '<div class="card"><div class="row" style="justify-content:space-between"><b>رسائل جديدة (' + items.length + ')</b>' + (smsAvailable ? '<button class="ghost" id="smsScan2" style="flex:0 0 auto">فحص</button>' : '') + '</div>';
+  var h = '<div class="card"><div class="row" style="justify-content:space-between"><b>رسائل جديدة (' + items.length + ')</b>' + (smsAvailable ? '<button class="btn-ghost" id="smsScan2" style="flex:0 0 auto">فحص</button>' : '') + '</div>';
   if (!items.length) h += '<div class="small">مفيش رسائل جديدة.</div>';
   items.forEach(function (it) {
     var isF = it.k !== 'dep', lbl = it.k === 'cashout' ? 'خسارة السحب' : 'عمولتك';
@@ -43,7 +43,7 @@ export function renderPend(store, computeResult, smsAvailable) {
       '<div class="small num">' + (it.p ? esc(it.p) + ' · ' : '') + (it.c ? 'رسوم المحفظة ' + fm2(it.c) + ' · ' : '') + (it.bal != null ? 'الرصيد بعدها ' + fm2(it.bal) : '') + '</div>' +
       '<div class="row"><select data-pw><option value="">اختار المحفظة</option>' + ws.map(function (w) { return '<option value="' + esc(w.id) + '"' + (w.id === it.sug ? ' selected' : '') + '>' + esc(w.name) + (w.phone ? ' · ' + esc(w.phone) : '') + '</option>'; }).join('') + '</select>' +
       (isF ? '<input data-pf inputmode="decimal" autocomplete="off" placeholder="' + lbl + '" value="' + defF + '">' : '') + '</div>' +
-      '<div class="row"><button class="ghost" data-pig="1">تجاهل</button><button class="primary" data-pok="1" style="padding:9px">تسجيل</button></div></div>';
+      '<div class="row"><button class="btn-ghost" data-pig="1">تجاهل</button><button class="btn-primary" data-pok="1">تسجيل</button></div></div>';
   });
   box.innerHTML = h + '</div>';
 }
