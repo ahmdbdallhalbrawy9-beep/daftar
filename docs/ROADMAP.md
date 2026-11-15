@@ -173,6 +173,32 @@ Not allowed: changing any calculation or data shape. Font: the system font stack
 **Done when:** the review passes and the console is clean.
 ⛔ **STOP** — open (or update) the release PR `saeed-develop → main`, share the PR and APK links, and merge it only when the owner says so.
 
+### Phase 12 — UI polish 🔄
+
+A pre-publish polish pass: find and fix every cross-page inconsistency, remove the global top app bar
+(its info moves into each tab's page header), refine the color palette for a calmer and more premium
+feel in both themes, and make sure every page follows the same structure. Branch: `ui/p12-polish` from
+the latest `saeed-develop`.
+
+- [ ] Audit: screenshot every tab + login + an open sheet, light/dark, 360px/1280px. Write `docs/ui-audit.md`
+      listing every inconsistency (spacing, card padding, section titles, button sizes/variants, alignment,
+      font sizes, icon sizes, corner radii, empty states, page headers, section organization).
+- [ ] Fix every item on the audit list.
+- [ ] Remove the global top app bar; move its info (date, sync status) into each tab's page header on
+      phones (stays in the sidebar/rail on wide screens already). No info duplicated anywhere.
+- [ ] Color polish in `styles/tokens.css` (and the `daftar-ui` skill's `references/tokens.css`, kept in
+      sync): calmer/more premium neutrals, deliberate (not inverted) dark mode, semantic colors used only
+      for meaning. No hex values outside the token files. Verify and log contrast ratios.
+- [ ] Organization pass: every page follows page header → main action area → grouped sections with small
+      section titles → lists, same spacing scale and card recipe everywhere, settings' danger zone last.
+- [ ] Bump `CACHE`, run the tests, the precache check, and the full `daftar-ui-review` matrix.
+
+**Done when:** `docs/ui-audit.md`'s list is empty of unfixed items, no top app bar remains, contrast ratios
+are documented and meet the targets, the review matrix passes, and a transfer/withdrawal still compute the
+same totals as before.
+⛔ **STOP** — update (or open) the release PR `saeed-develop → main`, share the PR and APK links, and merge
+it only when the owner says so.
+
 ---
 
 ## Progress log
