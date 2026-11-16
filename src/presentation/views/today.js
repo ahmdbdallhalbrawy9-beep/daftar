@@ -17,6 +17,7 @@ import { writable } from '../../application/sync.js';
 import { recordOpeningCash } from '../../application/openingCash.js';
 import { closeDay } from '../../application/closeDay.js';
 import { renderCust } from './customers.js';
+import { walletTotals } from '../../domain/wallets.js';
 import { voidTransaction } from '../../application/transactions.js';
 
 /**
@@ -105,11 +106,16 @@ export function renderDay(store, C) {
   $('#bkNotice').innerHTML = (Date.now() - bk > 7 * 864e5) ? '<div class="notice">خد نسخة احتياطية من الإعدادات. البيانات على الموبايل ده بس.</div>' : '';
   $('#tiles').innerHTML =
     '<div class="tile hero"><span>صافي ربح اليوم (بعد الخسارة)</span><b>' + fmt(C.pDay) + ' ج</b></div>' +
-    '<div class="tile"><span>محافظ فودافون</span><b>' + fmt(C.pDay - C.pDayI) + '</b></div>' +
-    '<div class="tile"><span>إنستاباي</span><b>' + fmt(C.pDayI) + '</b></div>' +
+    '<div class="tile"><span>ربح فودافون</span><b>' + fmt(C.pDay - C.pDayI) + '</b></div>' +
+    '<div class="tile"><span>ربح إنستاباي</span><b>' + fmt(C.pDayI) + '</b></div>' +
     '<div class="tile"><span>ربح الشهر</span><b>' + fmt(C.pMon) + '</b></div>' +
     '<div class="tile"><span>عمليات اليوم</span><b>' + C.nDay + '</b></div>' +
     '<div class="tile" style="grid-column:1/-1"><span>النقدي المتوقع في الدرج</span><b>' + fmt(C.cash) + ' ج</b></div>';
+  var bt = walletTotals(state.wallets, C);
+  $('#balCard').innerHTML = state.wallets.length ? '<div class="card"><div class="small">أرصدة المحافظ</div>' +
+    '<div class="row2"><span>فودافون</span><b class="num">' + fmt(bt.vf) + '</b></div>' +
+    '<div class="row2"><span>إنستاباي</span><b class="num">' + fmt(bt.insta) + '</b></div>' +
+    '<div class="row2 sumline"><b>الإجمالي</b><b class="num">' + fmt(bt.all) + ' ج</b></div></div>' : '';
   $('#fltChips').innerHTML = [['all', 'الكل'], ['v', 'محافظ'], ['i', 'إنستاباي']].map(function (f) { return '<button class="chip' + (state.ui.flt === f[0] ? ' on' : '') + '" data-f="' + f[0] + '">' + f[1] + '</button>'; }).join('');
   $('#expCash').textContent = fmt(C.cash);
   var key = state.wallets.map(function (w) { return w.id + ':' + w.name; }).join('|');

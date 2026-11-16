@@ -4,6 +4,8 @@
 // transactions.js's header comment for why).
 import { pad } from '../domain/time.js';
 import { rid } from '../domain/ids.js';
+import { dayKey } from '../domain/time.js';
+import { preFromRemaining } from '../domain/limits.js';
 
 /**
  * @typedef {object} WalletForm
@@ -12,6 +14,10 @@ import { rid } from '../domain/ids.js';
  * @property {string} type
  * @property {number} [dayLimit]
  * @property {number} [monthLimit]
+ * @property {number} [remainIn] monthly receive room left per the wallet's own app (omit = unchanged)
+ * @property {number} [remainOut] monthly send room left per the wallet's own app (omit = unchanged)
+ * @property {number} [recIn] receive usage the app already counted this month
+ * @property {number} [recOut] send usage the app already counted this month
  * @property {boolean} active
  * @property {number} balance
  */
@@ -37,6 +43,12 @@ export function createOrUpdateWallet(db, queue, clock, existingWallet, currentBa
     monthLimit: form.monthLimit || settings.defMon,
     active: !!form.active,
   };
+  if (form.remainIn != null || form.remainOut != null) {
+    var mk = dayKey(clock.now()).slice(0, 6), old = (existingWallet && existingWallet.pre && existingWallet.pre.mk === mk) ? existingWallet.pre : { i: 0, o: 0 };
+    rec.pre = { mk: mk, i: old.i || 0, o: old.o || 0 };
+    if (form.remainIn != null) rec.pre.i = preFromRemaining(rec.monthLimit, form.remainIn, form.recIn || 0);
+    if (form.remainOut != null) rec.pre.o = preFromRemaining(rec.monthLimit, form.remainOut, form.recOut || 0);
+  }
   if (existingWallet) {
     var changedBalance = Math.abs(form.balance - currentBalance) > 0.001;
     if (changedBalance) { rec.base = form.balance; rec.baseTs = clock.now(); }

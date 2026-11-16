@@ -19,6 +19,13 @@ export function roomOf(x, settings) {
 }
 
 /**
+ * "مستهلك مسبقًا": usage this month that happened before the app was used, derived from the
+ * remaining room the owner reads in the wallet's own app. `recorded` = what the app already counted.
+ * @param {number} limit monthly limit @param {number} remaining room left per the wallet's app @param {number} recorded
+ */
+export function preFromRemaining(limit, remaining, recorded) { return Math.max(0, limit - Math.max(0, remaining) - recorded); }
+
+/**
  * Would `add` more money on this wallet be stuck (more than it can still send)?
  * @param {{w:object, bal:number, dOut:number, mOut:number}} x
  * @param {{defDay:number,defMon:number}} settings

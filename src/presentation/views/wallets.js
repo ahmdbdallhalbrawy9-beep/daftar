@@ -1,6 +1,7 @@
 // @ts-check
 // The المحافظ (wallets) tab: grid + the add/edit wallet sheet. Extracted from
 // index.html's `renderWallets`/`openSheet` (wallet-edit half)/`saveWallet`.
+import { walletTotals } from '../../domain/wallets.js';
 import { $ } from '../dom.js';
 import { fmt, esc } from '../formatters.js';
 import { limBar } from '../components/bars.js';
@@ -21,7 +22,8 @@ export function renderWallets(store, C) {
   var isv = state.ui.svc === 'insta', list = state.wallets.filter(function (w) { return (w.type === 'insta') === isv; }), tot = 0;
   $('#svcW').innerHTML = svcHTML(state);
   list.forEach(function (w) { if (w.active !== false) tot += C.W[w.id].bal; });
-  $('#wTotal').textContent = list.length ? 'إجمالي الأرصدة: ' + fmt(tot) + ' ج' : '';
+  var bt = walletTotals(state.wallets, C);
+  $('#wTotals').innerHTML = state.wallets.length ? '<div class="tile"><span>فودافون كاش</span><b>' + fmt(bt.vf) + '</b></div><div class="tile"><span>إنستاباي</span><b>' + fmt(bt.insta) + '</b></div><div class="tile hero" style="grid-column:1/-1"><span>إجمالي كل الأرصدة</span><b>' + fmt(bt.all) + ' ج</b></div>' : '';
   if (!list.length) {
     g.innerHTML = '<div class="empty" style="grid-column:1/-1">' + (state.wallets.length ? 'مفيش حسابات في القسم ده. اضغط "+ محفظة" وضيف.' : 'مفيش محافظ لسه. ابدأ من تبويب "عملية".') + '</div>';
     return;
@@ -43,6 +45,8 @@ export function openWalletSheet(store, ctx, C, id) {
   var state = store.getState();
   var w = id ? state.wallets.filter(function (x) { return x.id === id; })[0] : null;
   var bal = w ? C.W[w.id].bal : 0;
+  var ml0 = (w && w.monthLimit) || state.settings.defMon, xw = w ? C.W[w.id] : null;
+  var remOut = Math.round(Math.max(0, ml0 - (xw ? xw.mOut : 0))), remIn = Math.round(Math.max(0, ml0 - (xw ? xw.mIn : 0)));
   var html = '<div class="sheet" role="dialog" aria-label="بيانات المحفظة">' +
     '<b>' + (w ? 'تعديل المحفظة' : 'محفظة جديدة') + '</b>' +
     '<div class="f2"><div><label for="sName">الاسم</label><input id="sName" value="' + esc(w ? w.name : '') + '"></div>' +
@@ -51,12 +55,16 @@ export function openWalletSheet(store, ctx, C, id) {
     '<div><label for="sBal">الرصيد الحالي</label><input id="sBal" inputmode="decimal" value="' + Math.round(bal) + '"></div>' +
     '<div><label for="sDay">ليميت يومي</label><input id="sDay" inputmode="numeric" value="' + (w ? w.dayLimit || '' : state.settings.defDay) + '"></div>' +
     '<div><label for="sMon">ليميت شهري</label><input id="sMon" inputmode="numeric" value="' + (w ? w.monthLimit || '' : state.settings.defMon) + '"></div></div>' +
+    '<details class="xtra"' + (w && w.pre && w.pre.mk === C.mk && (w.pre.i || w.pre.o) ? ' open' : '') + '><summary>المتبقي من الليميت الشهري (اختياري)</summary><div class="xtra-body">' +
+    '<p class="small">اكتب المتبقي اللي ظاهر لك في تطبيق المحفظة. التطبيق بيحسب اللي اتصرف قبل ما تستخدمه، وبيتصفّر لوحده أول الشهر الجاي.</p>' +
+    '<div class="f2"><div><label for="sRemOut">متبقي تحويل (إرسال)</label><input id="sRemOut" inputmode="numeric" value="' + remOut + '" data-orig="' + remOut + '"></div>' +
+    '<div><label for="sRemIn">متبقي استلام (سحب)</label><input id="sRemIn" inputmode="numeric" value="' + remIn + '" data-orig="' + remIn + '"></div></div></div></details>' +
     '<label class="check"><input type="checkbox" id="sActive"' + (!w || w.active !== false ? ' checked' : '') + '> شغّالة (تظهر في الاقتراحات)</label>' +
     '<div class="row"><button class="btn-ghost" id="sCancel">إلغاء</button><button class="btn-primary" id="sSave">حفظ</button></div></div>';
   openSheet(html, function () {
     $('#sType').value = w ? w.type || 'vf' : (state.ui.svc === 'insta' ? 'insta' : 'vf');
     $('#sCancel').onclick = closeSheet;
-    $('#sSave').onclick = function () { saveWalletAction(store, ctx, w, bal); };
+    $('#sSave').onclick = function () { saveWalletAction(store, ctx, w, bal, w ? C.W[w.id] : null); };
     $('#sName').focus();
   });
 }
@@ -67,7 +75,7 @@ export function openWalletSheet(store, ctx, C, id) {
  * @param {object|null} w
  * @param {number} oldBal
  */
-export async function saveWalletAction(store, ctx, w, oldBal) {
+export async function saveWalletAction(store, ctx, w, oldBal, xw) {
   var state = store.getState();
   if (!writable(state)) { toast('استنى لحد ما البيانات تتحمّل', true); return; }
   var name = $('#sName').value.trim();
@@ -77,6 +85,10 @@ export async function saveWalletAction(store, ctx, w, oldBal) {
     dayLimit: NUM($('#sDay').value) || state.settings.defDay, monthLimit: NUM($('#sMon').value) || state.settings.defMon,
     active: $('#sActive').checked, balance: NUM($('#sBal').value),
   };
+  // remaining-room fields: only send the ones the owner actually changed
+  var ro = $('#sRemOut'), ri = $('#sRemIn');
+  if (ro && ro.value.trim() !== '' && ro.value !== ro.dataset.orig) { form.remainOut = NUM(ro.value); form.recOut = xw ? xw.mOutRec : 0; }
+  if (ri && ri.value.trim() !== '' && ri.value !== ri.dataset.orig) { form.remainIn = NUM(ri.value); form.recIn = xw ? xw.mInRec : 0; }
   closeSheet();
   var res = await createOrUpdateWallet(ctx.db, ctx.queue, ctx.clock, w, oldBal, form, state.settings, state.wallets);
   if (res.ok) toast(w ? 'تم حفظ المحفظة' : 'تمت إضافة المحفظة');

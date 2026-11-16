@@ -13,7 +13,7 @@ export function showTab(store, t) {
   var slot = $('#tab-' + t + ' [data-slot]');
   var chip = $('#statusChip');
   if (slot && chip && chip.parentElement !== slot) slot.appendChild(chip);
-  $$('nav button').forEach(function (b) {
+  $$('nav button, .gear').forEach(function (b) {
     var active = b.dataset.t === t;
     b.classList.toggle('on', active);
     if (active) b.setAttribute('aria-current', 'page');

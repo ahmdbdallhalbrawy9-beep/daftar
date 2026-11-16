@@ -23,9 +23,14 @@ export function renderCust(store, C) {
   var state = store.getState(), list = openCustomers(C.cust), box = $('#custCard');
   var tot = custTotals(C.cust);
   $('#invDefer').textContent = list.length ? 'آجل مفتوح: عليك ' + fmt(tot.owe) + ' · ليك ' + fmt(tot.due) + ' (مش داخل في النقدي المتوقع)' : '';
-  if (!list.length) { box.innerHTML = ''; return; }
+  var net = tot.due - tot.owe;
+  $('#credTotals').innerHTML =
+    '<div class="tile"><span>ليك عند الناس</span><b class="pos">' + fmt(tot.due) + '</b></div>' +
+    '<div class="tile"><span>عليك للناس</span><b class="neg">' + fmt(tot.owe) + '</b></div>' +
+    '<div class="tile hero" style="grid-column:1/-1"><span>الصافي</span><b>' + (Math.abs(net) < 0.005 ? '0' : (net > 0 ? 'ليك ' : 'عليك ') + fmt(Math.abs(net))) + ' ج</b></div>';
+  if (!list.length) { box.innerHTML = '<div class="empty">مفيش آجل مفتوح دلوقتي. لما تسجّل عملية آجل هتظهر هنا.</div>'; return; }
   var cm = state.settings.cm || {};
-  var h = '<div class="card"><b>الآجل</b><div class="small num">عليك للناس ' + fmt(tot.owe) + ' ج · ليك عند الناس ' + fmt(tot.due) + ' ج</div>';
+  var h = '<div class="card">';
   if (tot.owe > 0 && C.cash < tot.owe) h += '<div class="notice">نقدية الدرج (' + fmt(C.cash) + ') أقل من اللي عليك للناس (' + fmt(tot.owe) + ')</div>';
   h += list.map(function (c) {
     var lim = (cm[c.key] || {}).lim || 0, over = lim > 0 && Math.abs(c.v) > lim + 0.005;
