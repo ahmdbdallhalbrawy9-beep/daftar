@@ -10,7 +10,7 @@ import { custKey, deferDelta } from './customers.js';
 
 /**
  * @typedef {object} ComputeResult
- * @property {Record<string, {w:object, bal:number, dIn:number, dOut:number, mIn:number, mOut:number}>} W
+ * @property {Record<string, {w:object, bal:number, dIn:number, dOut:number, mIn:number, mOut:number, mInRec:number, mOutRec:number}>} W
  * @property {number} cash
  * @property {number} pDay
  * @property {number} pMon
@@ -18,6 +18,7 @@ import { custKey, deferDelta } from './customers.js';
  * @property {number} pMonI
  * @property {number} nDay
  * @property {object[]} today
+ * @property {string} mk current month key (YYYYMM, Cairo)
  * @property {Record<string,{n:string,v:number,last:number}>} cust open customer credit (positive = customer owes me)
  */
 
@@ -34,7 +35,7 @@ export function compute(params) {
   });
   var live = all.filter(function (t) { return !voided[t.id]; }).sort(function (a, b) { return a.ts - b.ts; });
   var W = {};
-  wallets.forEach(function (w) { W[w.id] = { w: w, bal: w.base || 0, dIn: 0, dOut: 0, mIn: 0, mOut: 0 }; });
+  wallets.forEach(function (w) { W[w.id] = { w: w, bal: w.base || 0, dIn: 0, dOut: 0, mIn: 0, mOut: 0, mInRec: 0, mOutRec: 0 }; });
   var cash = settings.baseCash || 0, pDay = 0, pMon = 0, pDayI = 0, pMonI = 0, nDay = 0, today = [];
   var cust = {};
   var cb = settings.cb || {};
@@ -79,5 +80,13 @@ export function compute(params) {
     }
     if (isD) today.push(t);
   });
-  return { W: W, cash: cash, pDay: pDay, pMon: pMon, pDayI: pDayI, pMonI: pMonI, nDay: nDay, today: today, cust: cust };
+  // "مستهلك مسبقًا": usage of this month that happened before the app was used. Counts only while
+  // its month key is the current month, so it disappears on its own on the 1st (no write needed).
+  // It only moves the monthly usage — never a balance, profit or the drawer.
+  wallets.forEach(function (w) {
+    var x = W[w.id], p = /** @type {any} */ (w).pre;
+    x.mInRec = x.mIn; x.mOutRec = x.mOut;
+    if (p && p.mk === mk) { x.mIn += Math.max(0, p.i || 0); x.mOut += Math.max(0, p.o || 0); }
+  });
+  return { W: W, cash: cash, pDay: pDay, pMon: pMon, pDayI: pDayI, pMonI: pMonI, nDay: nDay, today: today, cust: cust, mk: mk };
 }

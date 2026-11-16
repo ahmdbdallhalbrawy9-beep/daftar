@@ -36,3 +36,18 @@ export function resolveCollector(wallets, computeResult, collectorId, amount, se
   pool.forEach(function (w) { if (!b || computeResult.W[w.id].bal > computeResult.W[b.id].bal) b = w; });
   return b ? b.id : null;
 }
+
+/**
+ * Sum of the balances of the active wallets, split by service. 'other' wallets count with Vodafone,
+ * like the wallets tab does.
+ * @param {Array<{id:string,type?:string,active?:boolean}>} wallets
+ * @param {{W: Record<string,{bal:number}>}} computeResult
+ */
+export function walletTotals(wallets, computeResult) {
+  var vf = 0, insta = 0;
+  wallets.forEach(function (w) {
+    if (w.active === false || !computeResult.W[w.id]) return;
+    if (w.type === 'insta') insta += computeResult.W[w.id].bal; else vf += computeResult.W[w.id].bal;
+  });
+  return { vf: vf, insta: insta, all: vf + insta };
+}

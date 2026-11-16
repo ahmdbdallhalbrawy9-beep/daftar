@@ -32,6 +32,7 @@
   <symbol id="i-hist" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>
   </symbol>
+  <symbol id="i-credit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M17 6v6M14 9h6"/></symbol>
   <symbol id="i-set" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M3.5 12h3M17.5 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
   </symbol>
@@ -40,7 +41,7 @@
 <div class="app">
   <section id="tab-tx" class="tab on">
     <div class="page-head"><div><h2 class="page-title">عملية</h2><p class="sub">سجّل عملية جديدة في ثوانٍ</p></div>
-      <div class="page-end" data-slot><span class="status-chip" id="statusChip"><span class="sub num" id="dateLine"></span><span class="pill warn" id="syncPill">جارٍ الاتصال…</span></span></div>
+      <div class="page-end" data-slot><span class="status-chip" id="statusChip"><span class="sub num" id="dateLine"></span><span class="pill warn" id="syncPill">جارٍ الاتصال…</span></span></div><button class="gear" data-t="set" aria-label="الإعدادات"><svg class="i"><use href="#i-set"></use></svg></button>
     </div>
     <div id="setup"></div>
     <div id="notice"></div>
@@ -102,20 +103,20 @@
 
   <section id="tab-wallets" class="tab">
     <div class="page-head"><div><h2 class="page-title">المحافظ</h2><p class="sub">كل المحافظ وأرصدتها</p></div>
-      <div class="page-end" data-slot><button class="btn-primary" id="addWallet">+ محفظة</button></div>
+      <div class="page-end" data-slot><button class="btn-primary" id="addWallet">+ محفظة</button></div><button class="gear" data-t="set" aria-label="الإعدادات"><svg class="i"><use href="#i-set"></use></svg></button>
     </div>
     <p class="small">الليميت اليومي بيتجدد 12 بالليل، والشهري أول كل شهر الساعة 12، بتوقيت القاهرة.</p>
     <div class="seg" id="svcW"></div>
-    <div class="small num" id="wTotal"></div>
+    <div class="grid" id="wTotals"></div>
     <div id="wgrid" class="grid"></div>
   </section>
 
   <section id="tab-day" class="tab">
-    <div class="page-head"><div><h2 class="page-title">اليوم</h2><p class="sub">أرباح النهارده والجرد</p></div><div class="page-end" data-slot></div></div>
+    <div class="page-head"><div><h2 class="page-title">اليوم</h2><p class="sub">أرباح النهارده والجرد</p></div><div class="page-end" data-slot></div><button class="gear" data-t="set" aria-label="الإعدادات"><svg class="i"><use href="#i-set"></use></svg></button></div>
     <div id="bkNotice"></div>
     <div id="openCard"></div>
     <div class="grid" id="tiles"></div>
-    <div id="custCard"></div>
+    <div id="balCard"></div>
     <div class="screen-split reverse">
       <div class="card">
         <b>الجرد والإقفال</b>
@@ -139,8 +140,14 @@
     </div>
   </section>
 
+  <section id="tab-credit" class="tab">
+    <div class="page-head"><div><h2 class="page-title">الآجل</h2><p class="sub">حسابات العملاء المفتوحة</p></div><div class="page-end" data-slot></div><button class="gear" data-t="set" aria-label="الإعدادات"><svg class="i"><use href="#i-set"></use></svg></button></div>
+    <div class="grid" id="credTotals"></div>
+    <div id="custCard"></div>
+  </section>
+
   <section id="tab-hist" class="tab">
-    <div class="page-head"><div><h2 class="page-title">السجل</h2><p class="sub">عمليات الأيام اللي فاتت</p></div><div class="page-end" data-slot></div></div>
+    <div class="page-head"><div><h2 class="page-title">السجل</h2><p class="sub">عمليات الأيام اللي فاتت</p></div><div class="page-end" data-slot></div><button class="gear" data-t="set" aria-label="الإعدادات"><svg class="i"><use href="#i-set"></use></svg></button></div>
     <div class="card">
       <b>سجل العمليات</b>
       <div class="row"><button class="btn-ghost" id="hPrev" style="flex:0 0 auto">السابق</button><input type="date" id="hDate"><button class="btn-ghost" id="hNext" style="flex:0 0 auto">التالي</button></div>
@@ -257,8 +264,9 @@
     <button data-t="tx" class="on" aria-current="page"><svg class="i"><use href="#i-tx"></use></svg><span>عملية</span></button>
     <button data-t="wallets"><svg class="i"><use href="#i-wallets"></use></svg><span>المحافظ</span></button>
     <button data-t="day"><svg class="i"><use href="#i-day"></use></svg><span>اليوم</span></button>
+    <button data-t="credit"><svg class="i"><use href="#i-credit"></use></svg><span>الآجل</span></button>
     <button data-t="hist"><svg class="i"><use href="#i-hist"></use></svg><span>السجل</span></button>
-    <button data-t="set"><svg class="i"><use href="#i-set"></use></svg><span>إعدادات</span></button>
+    <button data-t="set" class="nav-set"><svg class="i"><use href="#i-set"></use></svg><span>إعدادات</span></button>
   </div>
 </nav>
 <div id="auth" hidden><div class="box">

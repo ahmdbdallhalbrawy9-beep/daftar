@@ -15,7 +15,8 @@ wallet limits, profit, and the cash drawer.
 - **Operation kinds** (`data-k`): `out` تحويل, `in` سحب, `iout`/`iin` (InstaPay), `topup`, `cashout`, `itopup`, `icashout`.
 - **Money model:** customer commission (`f`) is profit; wallet fees charged to the owner (`c`) reduce profit.
   Wallets have daily and monthly limits that reset at midnight / first of month, **Cairo time**.
-- **Tabs:** عملية (new operation) · المحافظ (wallets) · اليوم (today: tiles, cash count & daily close) · السجل (history) · إعدادات (settings, backup, wipe, account).
+- **Tabs:** عملية (new operation) · المحافظ (wallets, with balance totals) · اليوم (today: profit tiles, wallet balances, cash count & daily close) · الآجل (customer deferred-cash accounts) · السجل (history). إعدادات (settings, backup, wipe, account) opens from the gear icon in each page header on phones, and stays in the nav on wider screens.
+- **Limits:** a wallet may carry `pre: {mk, i, o}` (usage this month before the app was used, entered as "remaining" in the wallet sheet); it counts only while `mk` is the current month.
 - **Sync:** Firebase Auth + Firestore (collections `ledger`, `wallets`, `settings`, `closes`), offline-first with a local DB fallback. Several phones can share one ledger.
 - **Android:** `.github/workflows/build-apk.yml` wraps the web app with Capacitor 6 and adds a native `SmsReader` plugin that reads Vodafone Cash SMS (`parseSms`, `scanSms`).
 
