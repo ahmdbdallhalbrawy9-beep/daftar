@@ -58,6 +58,7 @@ export function persistTxs(db, queue, deviceId, ledger, records) {
  * @property {string|null} [collectorId]
  * @property {boolean} [deferred] "آجل": customer cash is settled later (single-wallet in/out only)
  * @property {string} [customer] customer name, required when `deferred`
+ * @property {boolean} [pay] a payment/airtime top-up paid from the wallet (kind `out`, flagged `pay:1`)
  */
 
 /**
@@ -117,6 +118,7 @@ export async function recordTransaction(db, queue, clock, deviceId, ledger, para
     var rec = { id: rid('t'), ts: clock.now(), k: kind, w: params.selectedWalletId, a: amount, f: fee, n: note };
     if (deferred) { rec.dl = 1; rec.cn = cname; }
     if (bk === 'out') { if (cost) rec.c = cost; if (kind === 'out') rec.d = params.dest; }
+    if (kind === 'out' && params.pay) rec.pay = 1;
     if (kind === 'itopup') rec.m = fee === 0 ? 'atm' : 'fawry';
     records = [rec];
   }

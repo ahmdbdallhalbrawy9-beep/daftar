@@ -43,29 +43,30 @@ export function setupHTML() {
  */
 export function renderTx(store, C) {
   var state = store.getState(), ui = state.ui;
-  var k = ui.kind, bk = baseK(k), isI = isInsta(k), A = NUM($('#amt').value), F = NUM($('#fee').value), sp0 = (k === 'out' || k === 'iout') && ui.sm !== 'one';
+  var k = ui.kind, bk = baseK(k), isI = isInsta(k), A = NUM($('#amt').value), F = NUM($('#fee').value), sp0 = (k === 'out' || k === 'iout') && ui.sm !== 'one' && !(ui.pay && k === 'out');
+  var pay = !!ui.pay && k === 'out';
   $('#svcTx').innerHTML = svcHTML(state);
-  $$('#kinds .kind').forEach(function (b) { b.classList.toggle('on', b.dataset.k === k); b.style.display = b.dataset.s === (ui.svc === 'insta' ? 'i' : 'v') ? '' : 'none'; });
+  $$('#kinds .kind').forEach(function (b) { b.classList.toggle('on', b.dataset.k === k && !!b.dataset.pay === pay); b.style.display = b.dataset.s === (ui.svc === 'insta' ? 'i' : 'v') ? '' : 'none'; });
   var isFee = bk === 'in' || bk === 'out' || k === 'cashout' || k === 'itopup';
   $('#feeRow').style.display = isFee ? 'flex' : 'none';
-  $('#feeLbl').textContent = k === 'cashout' ? 'نسبة الخسارة (جنيه)' : k === 'itopup' ? 'رسوم الإيداع (جنيه)' : 'العمولة (جنيه)';
+  $('#feeLbl').textContent = pay ? 'عمولتي (جنيه)' : k === 'cashout' ? 'نسبة الخسارة (جنيه)' : k === 'itopup' ? 'رسوم الإيداع (جنيه)' : 'العمولة (جنيه)';
   if (isFee) {
     if (ui.pct == null) {
       store.patchUI({ pct: k === 'cashout' ? state.settings.feePctC : k === 'itopup' ? state.settings.feePctF : isI ? state.settings.feePctI : state.settings.feePct });
       ui = store.getState().ui;
     }
-    if (!ui.feeManual) { F = Math.round(A * ui.pct / 100); $('#fee').value = A ? String(F) : ''; }
+    if (!ui.feeManual) { F = pay ? 0 : Math.round(A * ui.pct / 100); $('#fee').value = A && !pay ? String(F) : ''; }
     var ps = k === 'itopup' ? [0.6, 0] : [0.5, 1, 1.5, 2];
     if (ps.indexOf(ui.pct) < 0) ps.push(ui.pct);
     if (k !== 'itopup') ps.sort(function (a, b) { return a - b; });
     var lbl = function (p) { return k === 'itopup' ? (p === 0 ? 'ماكينة ATM (مجاناً)' : p === 0.6 ? 'ماكينة فوري (0.6%)' : p + '%') : p + '%'; };
-    $('#pcts').innerHTML = ps.map(function (p) { var on = (!ui.feeManual && ui.pct === p) ? ' on' : ''; return '<button class="chip' + on + '" data-p="' + p + '">' + lbl(p) + '</button>'; }).join('');
+    $('#pcts').innerHTML = pay ? '' : ps.map(function (p) { var on = (!ui.feeManual && ui.pct === p) ? ' on' : ''; return '<button class="chip' + on + '" data-p="' + p + '">' + lbl(p) + '</button>'; }).join('');
   } else F = 0;
   var c = 0, showCost = bk === 'out';
   $('#costRow').style.display = showCost ? 'flex' : 'none';
   if (showCost) {
-    if (!ui.costManual) { c = walletCost(k, A, state.settings, ui.dest); $('#cost').value = A ? String(c) : ''; } else c = NUM($('#cost').value);
-    $('#dest').innerHTML = k === 'out'
+    if (!ui.costManual) { c = pay ? 0 : walletCost(k, A, state.settings, ui.dest); $('#cost').value = A && !pay ? String(c) : ''; } else c = NUM($('#cost').value);
+    $('#dest').innerHTML = pay ? '' : k === 'out'
       ? [['vf', 'لمحفظة فودافون (1 ج)'], ['other', 'لشبكة تانية (0.5% بحد 15)']].map(function (d) { return '<button class="chip' + (ui.dest === d[0] ? ' on' : '') + '" data-d="' + d[0] + '">' + d[1] + '</button>'; }).join('')
       : '<span class="small">إنستاباي بياخد 0.1% بحد أقصى 20 جنيه</span>';
   }
@@ -95,7 +96,7 @@ export function renderTx(store, C) {
   if (!writable(state)) { nt.innerHTML = '<div class="notice' + (state.waited ? ' bad' : '') + '">' + (state.waited ? 'مش قادر يوصل للبيانات المشتركة. اتأكد من النت وسيب الصفحة مفتوحة.' : 'جارٍ تحميل البيانات…') + '</div>'; }
   else nt.innerHTML = '';
 
-  $('#splitWrap').style.display = (k === 'out' || k === 'iout') ? 'flex' : 'none';
+  $('#splitWrap').style.display = ((k === 'out' || k === 'iout') && !pay) ? 'flex' : 'none';
   $('#smodes').innerHTML = [['one', 'عادي (محفظة واحدة)'], ['direct', 'تقسيم مباشر على كذا محفظة'], ['collect', 'تجميع ثم تحويل']].map(function (m) { return '<button class="chip' + (ui.sm === m[0] ? ' on' : '') + '" data-sm="' + m[0] + '">' + m[1] + '</button>'; }).join('');
   $('#pickTitle').style.display = $('#picker').style.display = sp0 ? 'none' : '';
   $('#splitBox').style.display = sp0 ? 'flex' : 'none';
@@ -265,7 +266,7 @@ export async function saveAction(store, ctx, C) {
   var k = ui.kind, A = NUM($('#amt').value), F = (baseK(k) === 'in' || baseK(k) === 'out' || k === 'cashout' || k === 'itopup') ? NUM($('#fee').value) : 0;
   if (!(A > 0) || !writable(state)) return;
   var note = $('#note').value.trim();
-  var isSplit = (k === 'out' || k === 'iout') && ui.sm !== 'one';
+  var isSplit = (k === 'out' || k === 'iout') && ui.sm !== 'one' && !(ui.pay && k === 'out');
   var ws = isSplit ? splitWallets(k, state.wallets) : state.wallets;
   var cc = 0;
   if (!isSplit) { if (baseK(k) === 'out') cc = NUM($('#cost').value); }
@@ -274,7 +275,7 @@ export async function saveAction(store, ctx, C) {
   var lc = deferred && cname ? deferLimitCheck(C, state.settings, cname, baseK(k), A, F, clim) : null;
   var params = {
     deferred: deferred, customer: cname,
-    kind: k, amount: A, fee: F, cost: cc, dest: ui.dest, note: note,
+    kind: k, amount: A, fee: F, cost: cc, dest: ui.dest, note: note, pay: !!ui.pay && k === 'out',
     selectedWalletId: ui.sel, splitMode: ui.sm, splits: ui.sp, collectorId: ui.col,
   };
   var res = await recordTransaction(ctx.db, ctx.queue, ctx.clock, ctx.deviceId, state.ledger, params, ws, C, state.settings);

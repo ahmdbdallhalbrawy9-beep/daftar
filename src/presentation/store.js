@@ -11,7 +11,7 @@ import { DEFAULTS } from '../domain/money.js';
 /** A fresh `ui`-shaped state slice (view/session-local, never synced). */
 function freshUiState() {
   return {
-    dest: 'vf', costManual: false, flt: 'all', kind: 'out', sel: null, manualSel: false, feeManual: false,
+    dest: 'vf', pay: false, costManual: false, flt: 'all', kind: 'out', sel: null, manualSel: false, feeManual: false,
     pct: null, showAll: false, tab: 'tx', setupDone: false, invKey: '', sm: 'one', sp: {}, col: null,
     spKey: '', svc: 'vf', hd: null, hflt: 'all', pendKey: '', delId: null, wipe: false, inst: null,
     reloaded: false, pendingImport: null,
