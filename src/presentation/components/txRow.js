@@ -10,7 +10,7 @@ import { hhmm } from '../../domain/time.js';
 
 /** Cash-drawer direction for this kind (matches domain/money.js's `cd` sign) — out/cashout bring cash in. */
 function isCashIn(kind) { var bk = baseK(kind); return bk === 'out' || bk === 'cashout'; }
-function amtHTML(n, kind) { return '<div class="amt' + (isCashIn(kind) ? ' in' : '') + '">' + fmt(n) + '</div>'; }
+function amtHTML(n, kind, dec) { return '<div class="amt' + (isCashIn(kind) ? ' in' : '') + '">' + (dec ? fm2(n) : fmt(n)) + '</div>'; }
 
 /**
  * @param {object[]} L one transaction, or every leg of one split group
@@ -45,6 +45,6 @@ export function groupHTML(L, C, withDel, delId) {
     return '<div class="tx"><div><div class="t1">' + title + '</div><div class="t2 num">' + hhmm(t.ts) + (ftot ? ' · عمولة ' + fmt(ftot) : '') + (ctot ? ' · رسوم محافظ ' + fm2(ctot) : '') + (t.n ? ' · ' + esc(t.n) : '') + '</div><div class="t2">' + det + '</div></div>' +
       '<div style="display:flex;align-items:center;gap:4px">' + amtHTML(amt, t.k) + btn + '</div></div>';
   }
-  return '<div class="tx"><div><div class="t1">' + KIND[t.k] + ' · ' + esc(nm0(t)) + '</div><div class="t2 num">' + hhmm(t.ts) + (t.f ? ' · ' + ((baseK(t.k) === 'in' || baseK(t.k) === 'out') ? 'عمولة' : 'خسارة') + ' ' + fmt(t.f) : '') + (t.c ? ' · رسوم محفظة ' + fm2(t.c) : '') + (t.m ? ' · ' + (t.m === 'atm' ? 'ATM' : 'فوري') : '') + (t.n ? ' · ' + esc(t.n) : '') + (t.dl ? ' · آجل: ' + esc(t.cn) : '') + '</div></div>' +
-    '<div style="display:flex;align-items:center;gap:4px">' + amtHTML(t.a, t.k) + btn + '</div></div>';
+  return '<div class="tx"><div><div class="t1">' + (t.pay ? 'دفع / شحن' : KIND[t.k]) + ' · ' + esc(nm0(t)) + '</div><div class="t2 num">' + hhmm(t.ts) + (t.f ? ' · ' + ((baseK(t.k) === 'in' || baseK(t.k) === 'out') ? 'عمولة' : 'خسارة') + ' ' + fmt(t.f) : '') + (t.c ? ' · رسوم محفظة ' + fm2(t.c) : '') + (t.m ? ' · ' + (t.m === 'atm' ? 'ATM' : 'فوري') : '') + (t.n ? ' · ' + esc(t.n) : '') + (t.dl ? ' · آجل: ' + esc(t.cn) : '') + '</div></div>' +
+    '<div style="display:flex;align-items:center;gap:4px">' + amtHTML(t.a, t.k, !!t.pay) + btn + '</div></div>';
 }

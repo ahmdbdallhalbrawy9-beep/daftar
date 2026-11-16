@@ -132,7 +132,7 @@ document.addEventListener('click', function (e) {
     store.patchUI({
       svc: t.dataset.svc, kind: t.dataset.svc === 'insta' ? 'iout' : 'out', sm: 'one',
       sp: {}, spKey: '', col: null, sel: null, manualSel: false, feeManual: false,
-      costManual: false, pct: null, showAll: false,
+      costManual: false, pct: null, showAll: false, pay: false,
     });
     return;
   }
@@ -142,7 +142,7 @@ document.addEventListener('click', function (e) {
   if (t.id === 'hNext') { store.patchUI({ hd: shiftDay(state.ui.hd || dayKey(Date.now()), 1) }); return; }
   if (t.dataset.sm) { store.patchUI({ sm: t.dataset.sm, sp: {}, spKey: '', col: null }); return; }
   if (t.id === 'spAuto') return autoSplitAction(store, C);
-  if (t.dataset.k) { store.patchUI({ kind: t.dataset.k, sp: {}, spKey: '', col: null, manualSel: false, feeManual: false, costManual: false, pct: null }); return; }
+  if (t.dataset.k) { store.patchUI({ kind: t.dataset.k, pay: !!t.dataset.pay, sm: t.dataset.pay ? 'one' : state.ui.sm, sp: {}, spKey: '', col: null, manualSel: false, feeManual: false, costManual: false, pct: null }); return; }
   if (t.dataset.d) { store.patchUI({ dest: t.dataset.d, costManual: false }); return; }
   if (t.dataset.f) { store.patchUI({ flt: t.dataset.f }); return; }
   if (t.dataset.p) { store.patchUI({ pct: parseFloat(t.dataset.p), feeManual: false }); return; }

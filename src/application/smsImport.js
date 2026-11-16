@@ -51,7 +51,7 @@ export function pendingItems(wallets, inbox, liveTxList, computeResult) {
   var vb = {};
   wallets.forEach(function (w) { if (C.W[w.id]) vb[w.id] = C.W[w.id].bal; });
   list.forEach(function (it) {
-    var delta = it.k === 'out' ? -(it.a + (it.c || 0)) : it.k === 'cashout' ? -it.a : it.a;
+    var delta = it.k === 'out' ? -(it.a + (it.c || 0)) : (it.k === 'cashout' || it.k === 'pay') ? -it.a : it.a;
     var cand = wallets.filter(function (w) { return w.active !== false && w.type !== 'insta'; }), pick = null;
     if (it.wn) {
       var d10 = String(it.wn).slice(-10);
@@ -99,6 +99,7 @@ export async function confirmPending(db, queue, deviceId, ledger, item, walletId
   var rec = { id: rid('t'), ts: item.ts, w: walletId, a: item.a, f: F, n: item.p || '', sid: item.id };
   if (item.k === 'in') rec.k = 'in';
   else if (item.k === 'out') { rec.k = 'out'; rec.c = item.c || 0; rec.d = (item.c || 0) <= settings.vfSame + 0.0001 ? 'vf' : 'other'; }
+  else if (item.k === 'pay') { rec.k = 'out'; rec.pay = 1; rec.c = 0; rec.d = 'vf'; rec.f = F; }
   else if (item.k === 'cashout') rec.k = 'cashout';
   else { rec.k = 'topup'; rec.f = 0; }
   if (x && ((rec.k === 'out' && x.bal < item.a + (item.c || 0) - 0.005) || (rec.k === 'cashout' && x.bal < item.a - 0.005))) {
