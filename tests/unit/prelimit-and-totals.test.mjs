@@ -1,3 +1,4 @@
+import { walletRoom } from '../../src/domain/limits.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWriteQueue } from '../../src/infrastructure/writeQueue.js';
@@ -49,7 +50,7 @@ test('limits, picker ranking and stuck checks all see the pre-consumption', () =
 test('receive pre-consumption limits the receive bar', () => {
   const ws = [W('a', { base: 0, pre: { mk: '202611', i: 199900, o: 0 } })];
   const C = comp({}, ws);
-  assert.match(limBar('الشهر', C.W.a.mIn, C.W.a.mOut, 200000, C.W.a.bal), /استلام \(سحب\).*متبقي 100 من 200,000/);
+  assert.match(limBar('الشهر', (() => { const r = walletRoom(200000, 200000, C.W.a); return { out: r.mOut, in: r.mIn }; })(), 200000), /استلام \(سحب\).*متبقي 100 من 200,000/);
 });
 
 test('preFromRemaining subtracts what the app already counted and never goes negative', () => {

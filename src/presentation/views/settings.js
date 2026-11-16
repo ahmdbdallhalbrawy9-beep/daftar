@@ -9,7 +9,10 @@ import { toast } from '../components/toast.js';
 import { getItem, setItem } from '../../infrastructure/storage.js';
 import { triggerDownload, readFileAsText } from '../../infrastructure/download.js';
 import { NUM } from '../../domain/numbers.js';
-import { dayKey } from '../../domain/time.js';
+import { dayKey, hhmm } from '../../domain/time.js';
+import { esc } from '../formatters.js';
+import { anyPending } from '../../application/sync.js';
+import { removeDevice } from '../../application/devices.js';
 import { writable } from '../../application/sync.js';
 import { saveSettings, setWipePassword, changeWipePassword } from '../../application/settingsUseCases.js';
 import { wipeAllData, wipeTransactions } from '../../application/wipe.js';
@@ -42,8 +45,41 @@ export function renderSet(store, deviceId) {
   $('#syncInfo').textContent = state.mode === 'cloud'
     ? 'بياناتك بتتحفظ على الموبايل وبتترفع لحسابك لما النت يشتغل. أي موبايل تسجّل دخول بيه بنفس الحساب بيشوف نفس الدفتر. لو عملت عمليات بدون نت، هتترفع أوتوماتيك أول ما النت يرجع.'
     : 'الدفتر محفوظ على الموبايل ده بس، وبيشتغل من غير نت. لو غيّرت الموبايل أو مسحت بيانات المتصفح، البيانات بتضيع من غير نسخة احتياطية.';
+  renderDevices(store, deviceId);
   var bk = +(getItem('dw_bk') || 0);
   $('#bkInfo').textContent = bk ? 'آخر نسخة احتياطية: ' + new Date(bk).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: 'Africa/Cairo', day: 'numeric', month: 'long' }) : 'لسه ما أخدتش نسخة احتياطية.';
+}
+
+/** @param {ReturnType<typeof import('../store.js').createStore>} store @param {string} deviceId */
+function renderDevices(store, deviceId) {
+  var state = store.getState();
+  $('#devCard').hidden = state.mode !== 'cloud';
+  if (state.mode !== 'cloud') return;
+  var pend = anyPending(state.meta), off = navigator.onLine === false;
+  var ls = state.lastSync || +(getItem('dw_lastsync') || 0);
+  $('#syncStatus').textContent = (off ? 'مفيش نت على الموبايل ده دلوقتي. ' : '') +
+    (pend ? 'فيه عمليات لسه ماترفعتش ولسه مش ظاهرة على باقي الموبايلات' + (off ? '، هتترفع أول ما النت يرجع.' : '، بيحاول يرفعها.')
+      : 'كل اللي على الموبايل ده اترفع.') + (ls ? ' آخر مزامنة ' + new Date(ls).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: 'Africa/Cairo', day: 'numeric', month: 'numeric' }) + ' ' + hhmm(ls) + '.' : '');
+  var ids = Object.keys(state.devices || {}).sort(function (a, b) { return (state.devices[b].ts || 0) - (state.devices[a].ts || 0); });
+  var now = Date.now();
+  $('#devList').innerHTML = ids.length ? '<div class="small" style="margin-top:8px">الموبايلات المسجّلة على الحساب (' + ids.length + ')</div>' + ids.map(function (id) {
+    var d = state.devices[id], me = id === deviceId, ago = now - (d.ts || 0);
+    var seen = me ? 'ده الموبايل ده' : ago < 3600e3 ? 'ظهر من شوية' : 'آخر ظهور ' + new Date(d.ts || 0).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: 'Africa/Cairo', day: 'numeric', month: 'numeric' }) + ' ' + hhmm(d.ts || 0);
+    return '<div class="row2 dev"><div><b>' + esc(d.name || 'موبايل') + '</b><div class="small num">' + esc(d.os || '') + ' · ' + seen + '</div></div>' +
+      (me ? '' : '<button class="btn-ghost" data-devdel="' + esc(id) + '" style="flex:0 0 auto">شيل</button>') + '</div>';
+  }).join('') : '';
+}
+
+var devT;
+/** Two taps: first arms, second removes a phone that no longer uses the account (e.g. after reinstalling). */
+export async function removeDeviceAction(ctx, btn) {
+  if (btn.dataset.armed !== '1') {
+    btn.dataset.armed = '1'; btn.textContent = 'تأكيد الشيل';
+    clearTimeout(devT); devT = setTimeout(function () { if (btn.isConnected) { btn.dataset.armed = ''; btn.textContent = 'شيل'; } }, 3500);
+    return;
+  }
+  await removeDevice(ctx.db, ctx.queue, btn.dataset.devdel);
+  toast('اتشال الموبايل من القائمة');
 }
 
 export async function saveRatesAction(store, ctx) {

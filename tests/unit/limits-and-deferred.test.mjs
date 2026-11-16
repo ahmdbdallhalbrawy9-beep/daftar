@@ -1,3 +1,4 @@
+import { walletRoom } from '../../src/domain/limits.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWriteQueue } from '../../src/infrastructure/writeQueue.js';
@@ -71,10 +72,10 @@ test('rank: monthly-stuck wallet is unfit, daily-stuck is soft and sorts after c
   assert.equal(t.find((x) => x.w.id === 'm').fits, false);
 });
 
+const room = (inn, out, lim, bal) => { const r = walletRoom(lim, lim, { bal, dIn: inn, dOut: out, mIn: inn, mOut: out }); return { out: r.mOut, in: r.mIn }; };
 test('limBar: receive bar shows the effective amount with a note', () => {
-  assert.match(limBar('الشهر', 0, 15000, 20000, 4000), /متبقي 1,000 من 20,000 · محدود بالتحويل/);
-  assert.doesNotMatch(limBar('الشهر', 0, 0, 20000, 0), /محدود/);
-  assert.doesNotMatch(limBar('الشهر', 0, 0, 20000), /محدود/);
+  assert.match(limBar('الشهر', room(0, 15000, 20000, 4000), 20000), /متبقي 1,000 من 20,000.*<div class="limnote">محدود بالتحويل/);
+  assert.doesNotMatch(limBar('الشهر', room(0, 0, 20000, 0), 20000), /محدود/);
 });
 
 test('recordTransaction: topup blocked when monthly stuck, warns when only daily', async () => {

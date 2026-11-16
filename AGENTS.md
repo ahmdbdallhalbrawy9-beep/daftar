@@ -17,6 +17,8 @@ wallet limits, profit, and the cash drawer.
   Wallets have daily and monthly limits that reset at midnight / first of month, **Cairo time**.
 - **Tabs:** عملية (new operation) · المحافظ (wallets, with balance totals) · اليوم (today: profit tiles, wallet balances, cash count & daily close) · الآجل (customer deferred-cash accounts) · السجل (history). إعدادات (settings, backup, wipe, account) opens from the gear icon in each page header on phones, and stays in the nav on wider screens.
 - **Limits:** a wallet may carry `pre: {mk, i, o}` (usage this month before the app was used, entered as "remaining" in the wallet sheet); it counts only while `mk` is the current month.
+- **Wallet cards:** today's send/receive room is capped by what is left of the month (`walletRoom` in `domain/limits.js`, display only); the reason shows on its own line (`.limnote`). A wallet can be deleted from its sheet only if no operation ever used it (`walletInUse`); otherwise deactivate it.
+- **Phones on the account:** each signed-in phone writes `settings/dev_<id>` (`application/devices.js`); listed in إعدادات → المزامنة والموبايلات. Not part of backups.
 - **Sync:** Firebase Auth + Firestore (collections `ledger`, `wallets`, `settings`, `closes`), offline-first with a local DB fallback. Several phones can share one ledger.
 - **Android:** `.github/workflows/build-apk.yml` wraps the web app with Capacitor 6 and adds a native `SmsReader` plugin that reads Vodafone Cash SMS (`parseSms`, `scanSms`).
 

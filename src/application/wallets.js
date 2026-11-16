@@ -6,6 +6,7 @@ import { pad } from '../domain/time.js';
 import { rid } from '../domain/ids.js';
 import { dayKey } from '../domain/time.js';
 import { preFromRemaining } from '../domain/limits.js';
+import { walletInUse } from '../domain/wallets.js';
 
 /**
  * @typedef {object} WalletForm
@@ -104,4 +105,18 @@ export function setupWallets(db, queue, form) {
     }
     return p;
   }).then(function () { return { ok: true }; });
+}
+
+/**
+ * Deletes a wallet only when no operation ever touched it; otherwise it must be deactivated
+ * (history, profit and the daily close keep pointing at it).
+ * @param {import('./ports.js').DbPort} db
+ * @param {(fn: () => Promise<any>) => Promise<any>} queue
+ * @param {Record<string, any[]>} ledger
+ * @param {string} walletId
+ */
+export function deleteWallet(db, queue, ledger, walletId) {
+  if (walletInUse(ledger, walletId)) return Promise.resolve({ ok: false, error: 'in-use' });
+  return queue(function () { return db.collection('wallets').doc(walletId).delete(); })
+    .then(function () { return { ok: true }; });
 }
