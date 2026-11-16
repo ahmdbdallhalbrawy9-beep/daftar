@@ -11,7 +11,8 @@
 export function exportBackup(rawState) {
   var o = {};
   Object.keys(rawState).forEach(function (c) {
-    Object.keys(rawState[c]).forEach(function (id) { o[c + '/' + id] = rawState[c][id]; });
+    // phones registered on the account (settings/dev_*) belong to the account, not to the ledger
+    Object.keys(rawState[c]).forEach(function (id) { if (!(c === 'settings' && id.indexOf('dev_') === 0)) o[c + '/' + id] = rawState[c][id]; });
   });
   return o;
 }
@@ -28,7 +29,7 @@ export function exportBackup(rawState) {
  */
 export function restoreBackup(db, queue, currentRaw, backupData) {
   var curKeys = Object.keys(exportBackup(currentRaw));
-  var newKeys = Object.keys(backupData).filter(function (k) { return /^(wallets|ledger|closes|settings)\//.test(k); });
+  var newKeys = Object.keys(backupData).filter(function (k) { return /^(wallets|ledger|closes|settings)\//.test(k) && k.indexOf('settings/dev_') !== 0; });
   return queue(function () {
     var p = Promise.resolve();
     curKeys.forEach(function (k) {

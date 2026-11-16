@@ -39,6 +39,22 @@ export function makeFsDB(fs, uid, onError) {
   };
 }
 
+/**
+ * Wakes Firestore's connection: after a long offline stretch the SDK backs off between retries, so
+ * on "network is back" / "app reopened" we bounce it to retry right away. Pending writes stay queued.
+ * @param {any} fs
+ * @returns {() => void}
+ */
+export function makeNetworkNudger(fs) {
+  var last = 0;
+  return function () {
+    var now = Date.now();
+    if (now - last < 8000 || navigator.onLine === false) return;
+    last = now;
+    try { fs.disableNetwork().then(function () { return fs.enableNetwork(); }).catch(function () { /* ignore */ }); } catch (e) { /* ignore */ }
+  };
+}
+
 /** @param {string[]} urls */
 export function loadScripts(urls) {
   return urls.reduce(function (p, u) {

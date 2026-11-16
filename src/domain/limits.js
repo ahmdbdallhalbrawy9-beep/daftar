@@ -35,3 +35,30 @@ export function entryChk(x, settings, add) {
   var r = roomOf(/** @type {any} */ (x), settings);
   return { m: x.bal + add > r.roomM, d: x.bal + add > r.roomD, maxM: Math.max(0, r.roomM - x.bal), roomM: r.roomM, roomD: r.roomD };
 }
+
+/**
+ * What can really still be sent / received on a wallet, today and this month.
+ * Display-only (never feeds balances or profit). `why` says what shrank the number:
+ * 'transfer' = money would sit on the wallet because the send limit is used up,
+ * 'month' = today's room is bigger than what is left of the monthly limit, '' = the official limit.
+ * @param {number} dl daily limit @param {number} ml monthly limit
+ * @param {{bal:number, dIn:number, dOut:number, mIn:number, mOut:number}} x
+ */
+export function walletRoom(dl, ml, x) {
+  var bal = x.bal;
+  var mOut = ml - x.mOut;
+  var mInOff = ml - x.mIn, mInT = ml - x.mOut - bal;
+  var mInWhy = mInT < mInOff ? 'transfer' : '';
+  var mIn = mInWhy ? Math.max(0, mInT) : mInOff;
+  var dOutOff = dl - x.dOut;
+  var dOutWhy = mOut < dOutOff ? 'month' : '';
+  var dOut = dOutWhy ? Math.max(0, mOut) : dOutOff;
+  var dInOff = dl - x.dIn, dInT = dl - x.dOut - bal;
+  var dInBase = Math.min(dInOff, dInT);
+  var dInWhy = mIn < dInBase ? 'month' : (dInT < dInOff ? 'transfer' : '');
+  var dIn = dInWhy ? Math.max(0, Math.min(dInBase, mIn)) : dInOff;
+  return {
+    dOut: { rem: dOut, why: dOutWhy }, dIn: { rem: dIn, why: dInWhy },
+    mOut: { rem: mOut, why: '' }, mIn: { rem: mIn, why: mInWhy },
+  };
+}

@@ -51,3 +51,14 @@ export function walletTotals(wallets, computeResult) {
   });
   return { vf: vf, insta: insta, all: vf + insta };
 }
+
+/**
+ * Is this wallet referenced by any recorded operation (as the wallet or as the receiving side)?
+ * Voided records count too — they are still part of the history.
+ * @param {Record<string, any[]>} ledger @param {string} id
+ */
+export function walletInUse(ledger, id) {
+  return Object.keys(ledger || {}).some(function (k) {
+    return (ledger[k] || []).some(function (t) { return t && (t.w === id || t.to === id); });
+  });
+}

@@ -17,7 +17,7 @@ import { DEFAULTS } from '../domain/money.js';
 export function freshSyncState() {
   return {
     inbox: {}, wallets: [], settings: Object.assign({}, DEFAULTS), ledger: {}, closes: [],
-    ready: {}, meta: {}, raw: {}, seen: {}, synced: false, waited: false,
+    ready: {}, meta: {}, raw: {}, seen: {}, synced: false, waited: false, devices: {}, lastSync: 0,
   };
 }
 
@@ -36,7 +36,7 @@ var currentStop = null;
 /**
  * @param {import('./ports.js').DbPort} db
  * @param {Store} store
- * @param {{markDeviceSynced?: (uid: string) => void}} [deps] `markDeviceSynced` persists the
+ * @param {{markDeviceSynced?: (uid: string) => void, onSynced?: (ts: number) => void}} [deps] `markDeviceSynced` persists the
  *   "already synced once" flag (infrastructure/storage.js) — kept out of this module directly.
  * @returns {() => void} a function that stops this sync (also returned so the
  *   caller doesn't have to call the separate `stopSync()`, though it may).
@@ -54,6 +54,11 @@ export function startSync(db, store, deps) {
       patch.ready = Object.assign({}, state.ready); patch.ready[name] = true;
       var md = snap.metadata || {};
       patch.meta = Object.assign({}, state.meta); patch.meta[name] = { fc: !!md.fromCache, hp: !!md.hasPendingWrites };
+      // a fresh server snapshot with nothing waiting to upload = this device is fully in sync right now
+      if (state.mode === 'cloud' && !md.fromCache && !md.hasPendingWrites) {
+        patch.lastSync = Date.now();
+        if (deps.onSynced) deps.onSynced(patch.lastSync);
+      }
       patch.raw = Object.assign({}, state.raw); patch.raw[name] = {};
       snap.docs.forEach(function (d) { patch.raw[name][d.id] = d.data(); });
       if (state.mode === 'cloud' && !md.fromCache) {
@@ -81,6 +86,9 @@ export function startSync(db, store, deps) {
     var ib = {};
     snap.docs.forEach(function (x) { if (x.id.indexOf('inbox_') === 0) ib[x.id.slice(6)] = x.data() || {}; });
     patch.inbox = ib;
+    var dv = {};
+    snap.docs.forEach(function (x) { if (x.id.indexOf('dev_') === 0) dv[x.id.slice(4)] = x.data() || {}; });
+    patch.devices = dv;
   }), fail));
   unsubs.push(db.collection('closes').onSnapshot(mark('closes', function (patch, snap) {
     patch.closes = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });

@@ -22,7 +22,7 @@ import { renderHist } from './presentation/views/history.js';
 import {
   renderSet, saveRatesAction, saveSetAction, pwSetAction, pwChangeAction,
   wipeAllAction, doWipeAction, bkExportAction, bkFileChangeAction, bkConfirmAction,
-  logoutAction, installAction, setThemeAction,
+  logoutAction, installAction, setThemeAction, removeDeviceAction,
 } from './presentation/views/settings.js';
 import { showAuth, authGoAction, authResetAction } from './presentation/views/login.js';
 
@@ -30,15 +30,17 @@ import { compute } from './domain/compute.js';
 import { dayKey, shiftDay } from './domain/time.js';
 import { liveTxs } from './domain/ledger.js';
 
-import { freshSyncState, startSync, stopSync, writable } from './application/sync.js';
+import { freshSyncState, startSync, stopSync, writable, anyPending } from './application/sync.js';
 import { scanForSms } from './application/smsImport.js';
+import { registerDevice } from './application/devices.js';
+import { describeDevice } from './infrastructure/deviceInfo.js';
 
 import { getItem, setItem } from './infrastructure/storage.js';
 import { getDeviceId } from './infrastructure/deviceId.js';
 import { sha } from './infrastructure/crypto.js';
 import { createWriteQueue } from './infrastructure/writeQueue.js';
 import { makeLocalDB } from './infrastructure/localDb.js';
-import { makeFsDB, loadScripts, FB } from './infrastructure/firestoreDb.js';
+import { makeFsDB, makeNetworkNudger, loadScripts, FB } from './infrastructure/firestoreDb.js';
 import { initFirebase, makeFirebaseAuth } from './infrastructure/firebaseAuth.js';
 import { getSmsPlugin } from './infrastructure/smsPlugin.js';
 import { registerServiceWorker } from './infrastructure/serviceWorker.js';
@@ -51,6 +53,8 @@ var clock = { now: function () { return Date.now(); } };
 var queue = createWriteQueue(function (e) { toast('تعذّر الحفظ: ' + ((e && e.message) || (e && e.code) || 'خطأ'), true); });
 var db = null;
 var authPort = null;
+var nudge = function () { /* set once Firebase is up */ };
+var devInfo = null, devBusy = false;
 
 function getCtx() {
   return { db: db, queue: queue, clock: clock, deviceId: deviceId, auth: authPort, sha: sha, getCompute: currentCompute };
@@ -75,6 +79,17 @@ function renderAll() {
   renderHist(store, C);
   renderPend(store, C, !!getSmsPlugin());
   renderGuide(store);
+  maybeRegisterDevice(state);
+}
+
+// keep this phone listed in settings → المزامنة والموبايلات (cloud mode only, once synced)
+async function maybeRegisterDevice(state) {
+  if (state.mode !== 'cloud' || !db || !writable(state) || devBusy) return;
+  devBusy = true;
+  try {
+    if (!devInfo) devInfo = await describeDevice();
+    await registerDevice(db, queue, clock, deviceId, state.devices, devInfo);
+  } catch (e) { /* ignore */ } finally { setTimeout(function () { devBusy = false; }, 30000); }
 }
 
 async function scanSmsAction(manual) {
@@ -103,6 +118,8 @@ document.addEventListener('click', function (e) {
   var C = currentCompute();
 
   if (t.dataset.t) return showTab(store, t.dataset.t);
+  if (t.id === 'syncNow') { nudge(); toast('بيحاول يزامن…'); return; }
+  if (t.dataset.devdel) return removeDeviceAction(getCtx(), t);
   if (t.dataset.oc) return openCashSheet(store, getCtx(), C);
   if (t.id === 'guideOk') return dismissGuideAction();
   if (t.dataset.pok || t.dataset.pig) {
@@ -182,13 +199,14 @@ $('#invCash').addEventListener('input', function () { updateDiffs(currentCompute
 $('#invRows').addEventListener('input', function () { updateDiffs(currentCompute()); });
 $('#bkFile').addEventListener('change', function (e) { bkFileChangeAction(store, e.target); });
 
-setInterval(function () { if (!document.hidden) { store.notify(); scanSmsAction(false); } }, 60000);
-document.addEventListener('visibilitychange', function () { if (!document.hidden) { store.notify(); scanSmsAction(false); } });
+setInterval(function () { if (!document.hidden) { store.notify(); scanSmsAction(false); if (anyPending(store.getState().meta)) nudge(); } }, 60000);
+document.addEventListener('visibilitychange', function () { if (!document.hidden) { store.notify(); scanSmsAction(false); nudge(); } });
 setTimeout(function () { scanSmsAction(false); }, 4000);
 
 /* ---------- cloud bootstrap ---------- */
 function initCloud() {
   var fs = initFirebase(window.FIREBASE_CONFIG);
+  nudge = makeNetworkNudger(fs);
   authPort = makeFirebaseAuth();
   authPort.onChange(function (u) {
     if (u) {
@@ -200,7 +218,7 @@ function initCloud() {
       store.patch({ user: u, mode: 'cloud' });
       db = makeFsDB(fs, u.uid, function (e) { toast('تعذّر الحفظ في الحساب: ' + ((e && e.code) || 'خطأ'), true); });
       store.patch({ synced: getItem('dw_sync_' + u.uid) === '1' });
-      startSync(db, store, { markDeviceSynced: function (uid) { setItem('dw_sync_' + uid, '1'); } });
+      startSync(db, store, { markDeviceSynced: function (uid) { setItem('dw_sync_' + uid, '1'); }, onSynced: function (ts) { setItem('dw_lastsync', String(ts)); } });
     } else {
       stopSync();
       db = null;
@@ -222,7 +240,7 @@ initTheme();
     function (promptEvent) { store.patchUI({ inst: promptEvent }); $('#installCard').hidden = false; },
     function () { $('#installCard').hidden = true; },
   );
-  window.addEventListener('online', function () { store.notify(); });
+  window.addEventListener('online', function () { store.notify(); nudge(); });
   window.addEventListener('offline', function () { store.notify(); });
 
   var cfg = window.FIREBASE_CONFIG;

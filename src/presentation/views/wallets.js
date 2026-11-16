@@ -1,7 +1,8 @@
 // @ts-check
 // The المحافظ (wallets) tab: grid + the add/edit wallet sheet. Extracted from
 // index.html's `renderWallets`/`openSheet` (wallet-edit half)/`saveWallet`.
-import { walletTotals } from '../../domain/wallets.js';
+import { walletTotals, walletInUse } from '../../domain/wallets.js';
+import { walletRoom } from '../../domain/limits.js';
 import { $ } from '../dom.js';
 import { fmt, esc } from '../formatters.js';
 import { limBar } from '../components/bars.js';
@@ -9,7 +10,7 @@ import { openSheet, closeSheet } from '../components/sheet.js';
 import { toast } from '../components/toast.js';
 import { svcHTML } from './transaction.js';
 import { NUM } from '../../domain/numbers.js';
-import { createOrUpdateWallet } from '../../application/wallets.js';
+import { createOrUpdateWallet, deleteWallet } from '../../application/wallets.js';
 import { writable } from '../../application/sync.js';
 
 /**
@@ -29,9 +30,9 @@ export function renderWallets(store, C) {
     return;
   }
   g.innerHTML = list.map(function (w) {
-    var x = C.W[w.id], dl = w.dayLimit || state.settings.defDay, ml = w.monthLimit || state.settings.defMon;
+    var x = C.W[w.id], dl = w.dayLimit || state.settings.defDay, ml = w.monthLimit || state.settings.defMon, r = walletRoom(dl, ml, x);
     return '<button class="wcard' + (w.active === false ? ' off' : '') + '" data-edit="' + esc(w.id) + '"><div class="l1" style="display:flex;justify-content:space-between;align-items:baseline"><b>' + esc(w.name) + (w.type === 'insta' ? ' <span class="tag">إنستاباي</span>' : '') + (w.active === false ? ' <span class="tag">متوقفة</span>' : '') + '</b><span class="bal">' + fmt(x.bal) + '</span></div>' +
-      (w.phone ? '<div class="small num">' + esc(w.phone) + '</div>' : '') + limBar('اليوم', x.dIn, x.dOut, dl, x.bal) + limBar('الشهر', x.mIn, x.mOut, ml, x.bal) + '</button>';
+      (w.phone ? '<div class="small num">' + esc(w.phone) + '</div>' : '') + limBar('اليوم', { out: r.dOut, in: r.dIn }, dl) + limBar('الشهر', { out: r.mOut, in: r.mIn }, ml) + '</button>';
   }).join('');
 }
 
@@ -60,11 +61,13 @@ export function openWalletSheet(store, ctx, C, id) {
     '<div class="f2"><div><label for="sRemOut">متبقي تحويل (إرسال)</label><input id="sRemOut" inputmode="numeric" value="' + remOut + '" data-orig="' + remOut + '"></div>' +
     '<div><label for="sRemIn">متبقي استلام (سحب)</label><input id="sRemIn" inputmode="numeric" value="' + remIn + '" data-orig="' + remIn + '"></div></div></div></details>' +
     '<label class="check"><input type="checkbox" id="sActive"' + (!w || w.active !== false ? ' checked' : '') + '> شغّالة (تظهر في الاقتراحات)</label>' +
-    '<div class="row"><button class="btn-ghost" id="sCancel">إلغاء</button><button class="btn-primary" id="sSave">حفظ</button></div></div>';
+    '<div class="row"><button class="btn-ghost" id="sCancel">إلغاء</button><button class="btn-primary" id="sSave">حفظ</button></div>' +
+    (w ? '<button class="btn-danger" id="sDelete">مسح المحفظة</button>' : '') + '</div>';
   openSheet(html, function () {
     $('#sType').value = w ? w.type || 'vf' : (state.ui.svc === 'insta' ? 'insta' : 'vf');
     $('#sCancel').onclick = closeSheet;
     $('#sSave').onclick = function () { saveWalletAction(store, ctx, w, bal, w ? C.W[w.id] : null); };
+    if (w) $('#sDelete').onclick = function () { deleteWalletAction(store, ctx, w, bal); };
     $('#sName').focus();
   });
 }
@@ -92,4 +95,29 @@ export async function saveWalletAction(store, ctx, w, oldBal, xw) {
   closeSheet();
   var res = await createOrUpdateWallet(ctx.db, ctx.queue, ctx.clock, w, oldBal, form, state.settings, state.wallets);
   if (res.ok) toast(w ? 'تم حفظ المحفظة' : 'تمت إضافة المحفظة');
+}
+
+/**
+ * Two taps: the first arms the button, the second deletes. A wallet with history can't be deleted —
+ * the sheet un-ticks "شغّالة" instead so saving stops it.
+ */
+async function deleteWalletAction(store, ctx, w, bal) {
+  var state = store.getState();
+  if (!writable(state)) { toast('استنى لحد ما البيانات تتحمّل', true); return; }
+  var btn = $('#sDelete');
+  if (walletInUse(state.ledger, w.id)) {
+    var act = $('#sActive'); if (act) act.checked = false;
+    toast('المحفظة دي عليها عمليات ومينفعش تتمسح. اتعملت "مش شغّالة" — اضغط حفظ عشان تتوقف', true);
+    return;
+  }
+  if (btn.dataset.armed !== '1') {
+    btn.dataset.armed = '1';
+    btn.textContent = 'اضغط تاني للتأكيد' + (Math.abs(bal) > 0.5 ? ' (رصيدها ' + fmt(bal) + ')' : '');
+    setTimeout(function () { if (btn.isConnected) { btn.dataset.armed = ''; btn.textContent = 'مسح المحفظة'; } }, 4000);
+    return;
+  }
+  closeSheet();
+  var res = await deleteWallet(ctx.db, ctx.queue, state.ledger, w.id);
+  if (res.ok) toast('اتمسحت المحفظة');
+  else toast('مينفعش تتمسح', true);
 }
