@@ -142,7 +142,22 @@ jobs:
         run: |
           if [ -n "$KS" ]; then
             mkdir -p ~/.android
-            echo "$KS" | base64 -d > ~/.android/debug.keystore
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/debug-key.bin"
+            rm -f ~/.android/debug.keystore
+            # Gradle only reads a JKS debug keystore (a PKCS12 one is silently replaced by a fresh
+            # random key on every build, which breaks updates). Convert if needed, else use as is.
+            if keytool -importkeystore -srckeystore "$RUNNER_TEMP/debug-key.bin" -srcstoretype PKCS12 \
+                 -srcstorepass android -destkeystore ~/.android/debug.keystore -deststoretype JKS \
+                 -deststorepass android -noprompt; then
+              echo "Converted PKCS12 key to JKS"
+            else
+              cp "$RUNNER_TEMP/debug-key.bin" ~/.android/debug.keystore
+            fi
+            keytool -list -keystore ~/.android/debug.keystore -storepass android | grep -i "androiddebugkey\|SHA"
+            # Tell Gradle explicitly which keystore to sign debug builds with (relying on the default
+            # location was silently ignored); fail loudly if the patch did not apply.
+            sed -i '0,/^android {/s//android {\n    signingConfigs {\n        debug {\n            storeFile file(System.getProperty("user.home") + "\/.android\/debug.keystore")\n            storePassword "android"\n            keyAlias "androiddebugkey"\n            keyPassword "android"\n        }\n    }/' app/android/app/build.gradle
+            grep -q 'debug.keystore' app/android/app/build.gradle || { echo "signing patch did not apply"; exit 1; }
             echo "Using fixed signing key"
           else
             echo "No fixed key set, using a temporary key"
