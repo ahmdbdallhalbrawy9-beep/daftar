@@ -14,7 +14,7 @@ function freshUiState() {
     dest: 'vf', pay: false, costManual: false, flt: 'all', kind: 'out', sel: null, manualSel: false, feeManual: false,
     pct: null, showAll: false, tab: 'tx', setupDone: false, invKey: '', sm: 'one', sp: {}, col: null,
     spKey: '', svc: 'vf', hd: null, hflt: 'all', pendKey: '', delId: null, wipe: false, inst: null,
-    reloaded: false, pendingImport: null,
+    reloaded: false, pendingImport: null, custQ: '', hq: '', hmode: 'list', rmode: 'week', roff: 0, wsort: 'bal',
   };
 }
 

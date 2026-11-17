@@ -17,8 +17,8 @@ import {
   renderGuide, dismissGuideAction, renderOpen, openCashSheet, updateDiffs,
   renderDay, doCloseAction, voidTxAction,
 } from './presentation/views/today.js';
-import { openSettle, openCustLimit } from './presentation/views/customers.js';
-import { renderHist } from './presentation/views/history.js';
+import { openSettle, openCustLimit, openCustEdit } from './presentation/views/customers.js';
+import { renderHist, openNoteSheet } from './presentation/views/history.js';
 import {
   renderSet, saveRatesAction, saveSetAction, pwSetAction, pwChangeAction,
   wipeAllAction, doWipeAction, bkExportAction, bkFileChangeAction, bkConfirmAction,
@@ -152,10 +152,11 @@ document.addEventListener('click', function (e) {
   var perms = myPerms();
   if (t.dataset.t === 'set' && !perms.settings) return;
   if (t.dataset.t === 'credit' && !perms.credit) return;
+  if (t.dataset.tn && !perms.void) { toast('مفيش صلاحية لتعديل العمليات على الموبايل ده', true); return; }
   if (t.dataset.del && !perms.void) { toast('مفيش صلاحية لإلغاء العمليات على الموبايل ده', true); return; }
   if ((t.dataset.edit || t.id === 'addWallet') && !perms.wallets) { toast('مفيش صلاحية لتعديل المحافظ على الموبايل ده', true); return; }
   if (t.id === 'closeBtn' && !perms.close) return;
-  if ((t.dataset.cs || t.dataset.cl) && !perms.credit) return;
+  if ((t.dataset.cs || t.dataset.cl || t.dataset.ce) && !perms.credit) return;
   if (t.dataset.t) return showTab(store, t.dataset.t);
   if (t.id === 'abShow') return showAutoBackups(store, getCtx());
   if (t.dataset.abrestore) return restoreAutoBackupAction(store, getCtx(), t);
@@ -192,6 +193,12 @@ document.addEventListener('click', function (e) {
   if (t.dataset.edit) return openWalletSheet(store, getCtx(), C, t.dataset.edit);
   if (t.dataset.cs) return openSettle(store, getCtx(), C, t.dataset.cs);
   if (t.dataset.cl) return openCustLimit(store, getCtx(), C, t.dataset.cl);
+  if (t.dataset.ce) return openCustEdit(store, getCtx(), C, t.dataset.ce);
+  if (t.dataset.tn) return openNoteSheet(store, getCtx(), t.dataset.tn);
+  if (t.dataset.ws) { setItem('dw_wsort', t.dataset.ws); store.patchUI({ wsort: t.dataset.ws }); return; }
+  if (t.dataset.hm) { store.patchUI({ hmode: t.dataset.hm }); return; }
+  if (t.dataset.rm) { store.patchUI({ rmode: t.dataset.rm, roff: 0 }); return; }
+  if (t.dataset.ro) { store.patchUI({ roff: Math.max(0, (state.ui.roff || 0) + parseInt(t.dataset.ro, 10)) }); return; }
   if (t.dataset.del) return voidTxAction(store, getCtx(), t.dataset.del);
   if (t.id === 'doSetup') return doSetupAction(store, getCtx());
   if (t.id === 'save') return saveAction(store, getCtx(), C);
@@ -215,6 +222,9 @@ document.addEventListener('click', function (e) {
 
 /* ---------- scoped listeners ---------- */
 $('#amt').addEventListener('input', function () { store.notify(); });
+store.patchUI({ wsort: getItem('dw_wsort') === 'manual' ? 'manual' : 'bal' });
+$('#custQ').addEventListener('input', function (e) { store.patchUI({ custQ: /** @type {HTMLInputElement} */ (e.target).value }); });
+$('#hQ').addEventListener('input', function (e) { store.patchUI({ hq: /** @type {HTMLInputElement} */ (e.target).value }); });
 $('#hDate').addEventListener('change', function (e) {
   var v = e.target.value;
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) store.patchUI({ hd: v.replace(/-/g, '') });

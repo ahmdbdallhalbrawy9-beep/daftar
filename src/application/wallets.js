@@ -19,6 +19,7 @@ import { walletInUse } from '../domain/wallets.js';
  * @property {number} [remainOut] monthly send room left per the wallet's own app (omit = unchanged)
  * @property {number} [recIn] receive usage the app already counted this month
  * @property {number} [recOut] send usage the app already counted this month
+ * @property {number} [minBal] alert when the balance falls under this (0 = none)
  * @property {boolean} active
  * @property {number} balance
  */
@@ -44,6 +45,7 @@ export function createOrUpdateWallet(db, queue, clock, existingWallet, currentBa
     monthLimit: form.monthLimit || settings.defMon,
     active: !!form.active,
   };
+  if (form.minBal != null) rec.minBal = form.minBal > 0 ? form.minBal : 0;
   if (form.remainIn != null || form.remainOut != null) {
     var mk = dayKey(clock.now()).slice(0, 6), old = (existingWallet && existingWallet.pre && existingWallet.pre.mk === mk) ? existingWallet.pre : { i: 0, o: 0 };
     rec.pre = { mk: mk, i: old.i || 0, o: old.o || 0 };

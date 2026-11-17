@@ -17,6 +17,7 @@ import { writable } from '../../application/sync.js';
 import { recordOpeningCash } from '../../application/openingCash.js';
 import { closeDay } from '../../application/closeDay.js';
 import { renderCust } from './customers.js';
+import { alertsHTML } from './wallets.js';
 import { walletTotals } from '../../domain/wallets.js';
 import { voidTransaction } from '../../application/transactions.js';
 
@@ -126,10 +127,11 @@ export function renderDay(store, C) {
   $$('[data-exp]').forEach(function (el) { var x = C.W[el.dataset.exp]; el.textContent = x ? fmt(x.bal) : ''; });
   updateDiffs(C);
   renderCust(store, C);
+  $('#alertBoxT').innerHTML = alertsHTML(state, C);
   var tl = $('#txList');
   var tlist = C.today.filter(function (t) { return state.ui.flt === 'all' || (t.k !== 'settle' && (state.ui.flt === 'i') === isInsT(t)); });
   if (!tlist.length) tl.innerHTML = '<div class="empty">لسه مفيش عمليات النهارده.</div>';
-  else tl.innerHTML = txGroups(tlist).map(function (L) { return groupHTML(L, C, true, state.ui.delId); }).join('');
+  else tl.innerHTML = txGroups(tlist).map(function (L) { return groupHTML(L, C, true, state.ui.delId, true); }).join('');
   var cl = $('#closeList'), cs = state.closes.slice().sort(function (a, b) { return b.ts - a.ts; }).slice(0, 6);
   cl.innerHTML = cs.length ? cs.map(function (c) {
     var df = c.actCash - c.expCash;

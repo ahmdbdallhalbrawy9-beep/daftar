@@ -62,3 +62,20 @@ export function walletInUse(ledger, id) {
     return (ledger[k] || []).some(function (t) { return t && (t.w === id || t.to === id); });
   });
 }
+
+/**
+ * Wallets for display: biggest balance first (stopped wallets last), or the saved order.
+ * @template {{id:string,active?:boolean,order?:number}} T
+ * @param {T[]} list @param {Record<string,{bal:number}>} W @param {'bal'|'manual'} mode
+ * @returns {T[]}
+ */
+export function sortWallets(list, W, mode) {
+  var l = list.slice();
+  if (mode !== 'bal') return l;
+  var bal = function (w) { return W[w.id] ? W[w.id].bal : 0; };
+  return l.sort(function (a, b) {
+    var ao = a.active === false ? 1 : 0, bo = b.active === false ? 1 : 0;
+    if (ao !== bo) return ao - bo;
+    return bal(b) - bal(a) || (a.order || 0) - (b.order || 0);
+  });
+}

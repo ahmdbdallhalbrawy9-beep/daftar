@@ -6,7 +6,7 @@
 import { baseK, isInsta } from './kinds.js';
 import { wd, cd } from './money.js';
 import { dayKey } from './time.js';
-import { custKey, deferDelta } from './customers.js';
+import { resolveCust, deferDelta } from './customers.js';
 
 /**
  * @typedef {object} ComputeResult
@@ -39,8 +39,12 @@ export function compute(params) {
   var cash = settings.baseCash || 0, pDay = 0, pMon = 0, pDayI = 0, pMonI = 0, nDay = 0, today = [];
   var cust = {};
   var cb = settings.cb || {};
-  Object.keys(cb).forEach(function (k) { cust[k] = { n: cb[k].n, v: cb[k].v || 0, last: 0 }; });
-  var custOf = function (name) { var k = custKey(name); return cust[k] || (cust[k] = { n: String(name).trim(), v: 0, last: 0 }); };
+  var ca = /** @type {any} */ (settings).ca;
+  Object.keys(cb).forEach(function (k) {
+    var r = resolveCust(ca, cb[k].n || k), e = cust[r.key] || (cust[r.key] = { n: r.n, v: 0, last: 0 });
+    e.v += cb[k].v || 0;
+  });
+  var custOf = function (name) { var r = resolveCust(ca, name); return cust[r.key] || (cust[r.key] = { n: r.n, v: 0, last: 0 }); };
   live.forEach(function (t) {
     if (t.k === 'settle') {
       var sc = custOf(t.cn);
