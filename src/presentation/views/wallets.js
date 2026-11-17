@@ -1,7 +1,8 @@
 // @ts-check
 // The المحافظ (wallets) tab: grid + the add/edit wallet sheet. Extracted from
 // index.html's `renderWallets`/`openSheet` (wallet-edit half)/`saveWallet`.
-import { walletTotals, walletInUse } from '../../domain/wallets.js';
+import { walletTotals, walletInUse, sortWallets } from '../../domain/wallets.js';
+import { walletAlerts } from '../../domain/alerts.js';
 import { walletRoom } from '../../domain/limits.js';
 import { balanceDrift } from '../../domain/drift.js';
 import { liveTxs } from '../../domain/ledger.js';
@@ -27,6 +28,9 @@ export function renderWallets(store, C) {
   var isv = state.ui.svc === 'insta', list = state.wallets.filter(function (w) { return (w.type === 'insta') === isv; }), tot = 0;
   $('#svcW').innerHTML = svcHTML(state);
   list.forEach(function (w) { if (w.active !== false) tot += C.W[w.id].bal; });
+  list = sortWallets(list, C.W, state.ui.wsort === 'manual' ? 'manual' : 'bal');
+  $('#wSort').innerHTML = [['bal', 'الأكبر رصيد فوق'], ['manual', 'ترتيبي']].map(function (o) { return '<button class="chip' + ((state.ui.wsort || 'bal') === o[0] ? ' on' : '') + '" data-ws="' + o[0] + '">' + o[1] + '</button>'; }).join('');
+  $('#alertBox').innerHTML = alertsHTML(state, C);
   var bt = walletTotals(state.wallets, C);
   $('#wTotals').innerHTML = state.wallets.length ? '<div class="tile"><span>فودافون كاش</span><b>' + fmt(bt.vf) + '</b></div><div class="tile"><span>إنستاباي</span><b>' + fmt(bt.insta) + '</b></div><div class="tile hero" style="grid-column:1/-1"><span>إجمالي كل الأرصدة</span><b>' + fmt(bt.all) + ' ج</b></div>' : '';
   if (!list.length) {
@@ -60,7 +64,8 @@ export function openWalletSheet(store, ctx, C, id) {
     '<div><label for="sType">النوع</label><select id="sType"><option value="vf">فودافون كاش</option><option value="insta">إنستاباي</option><option value="other">أخرى</option></select></div>' +
     '<div><label for="sBal">الرصيد الحالي</label><input id="sBal" inputmode="decimal" value="' + Math.round(bal) + '"></div>' +
     '<div><label for="sDay">ليميت يومي</label><input id="sDay" inputmode="numeric" value="' + (w ? w.dayLimit || '' : state.settings.defDay) + '"></div>' +
-    '<div><label for="sMon">ليميت شهري</label><input id="sMon" inputmode="numeric" value="' + (w ? w.monthLimit || '' : state.settings.defMon) + '"></div></div>' +
+    '<div><label for="sMon">ليميت شهري</label><input id="sMon" inputmode="numeric" value="' + (w ? w.monthLimit || '' : state.settings.defMon) + '"></div>' +
+    '<div><label for="sMin">أقل رصيد (تنبيه)</label><input id="sMin" inputmode="numeric" placeholder="من غير" value="' + (w && w.minBal ? w.minBal : '') + '"></div></div>' +
     '<details class="xtra"' + (w && w.pre && w.pre.mk === C.mk && (w.pre.i || w.pre.o) ? ' open' : '') + '><summary>المتبقي من الليميت الشهري (اختياري)</summary><div class="xtra-body">' +
     '<p class="small">اكتب المتبقي اللي ظاهر لك في تطبيق المحفظة. التطبيق بيحسب اللي اتصرف قبل ما تستخدمه، وبيتصفّر لوحده أول الشهر الجاي.</p>' +
     '<div class="f2"><div><label for="sRemOut">متبقي تحويل (إرسال)</label><input id="sRemOut" inputmode="numeric" value="' + remOut + '" data-orig="' + remOut + '"></div>' +
@@ -91,7 +96,7 @@ export async function saveWalletAction(store, ctx, w, oldBal, xw) {
   var form = {
     name: name, phone: $('#sPhone').value.trim(), type: $('#sType').value,
     dayLimit: NUM($('#sDay').value) || state.settings.defDay, monthLimit: NUM($('#sMon').value) || state.settings.defMon,
-    active: $('#sActive').checked, balance: NUM($('#sBal').value),
+    active: $('#sActive').checked, balance: NUM($('#sBal').value), minBal: NUM($('#sMin').value) || 0,
   };
   // remaining-room fields: only send the ones the owner actually changed
   var ro = $('#sRemOut'), ri = $('#sRemIn');
@@ -133,4 +138,13 @@ function driftHTML(w, x, liveList, smsItems) {
   var d = balanceDrift(w, x.bal, liveList, smsItems);
   if (!d) return '';
   return '<div class="cashwarn soft">آخر رسالة (' + hhmm(d.at) + ') رصيد المحفظة فيها ' + fm2(d.smsBal) + ' والتطبيق شايف ' + fm2(d.expected) + ' · فرق ' + fm2(Math.abs(d.diff)) + '. فيه عملية ناقصة أو غلط.</div>';
+}
+
+/** Banner with the wallets that are close to a limit or under their minimum balance ('' when all is fine). */
+export function alertsHTML(state, C) {
+  var al = walletAlerts(state.wallets, C.W, state.settings);
+  if (!al.length) return '';
+  return '<div class="alertbar" role="status"><b>تنبيه على المحافظ</b>' + al.map(function (a) {
+    return '<div><b>' + esc(a.name) + '</b>: ' + a.parts.map(esc).join(' · ') + '</div>';
+  }).join('') + '</div>';
 }

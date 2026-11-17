@@ -5,8 +5,9 @@ import { fmt, fm2, esc } from '../formatters.js';
 import { openSheet, closeSheet } from '../components/sheet.js';
 import { toast } from '../components/toast.js';
 import { NUM } from '../../domain/numbers.js';
-import { openCustomers, custTotals } from '../../domain/customers.js';
-import { settleCustomer, setCustomerLimit } from '../../application/customers.js';
+import { openCustomers, custTotals, custMatches, resolveCust } from '../../domain/customers.js';
+import { liveTxs } from '../../domain/ledger.js';
+import { settleCustomer, setCustomerLimit, editCustomer } from '../../application/customers.js';
 import { writable } from '../../application/sync.js';
 
 /** @param {number} ts */
@@ -30,14 +31,24 @@ export function renderCust(store, C) {
     '<div class="tile hero" style="grid-column:1/-1"><span>الصافي</span><b>' + (Math.abs(net) < 0.005 ? '0' : (net > 0 ? 'ليك ' : 'عليك ') + fmt(Math.abs(net))) + ' ج</b></div>';
   if (!list.length) { box.innerHTML = '<div class="empty">مفيش آجل مفتوح دلوقتي. لما تسجّل عملية آجل هتظهر هنا.</div>'; return; }
   var cm = state.settings.cm || {};
+  var q = String((state.ui || {}).custQ || '').trim();
+  if (q) {
+    var notes = {};   // each customer's deferred-operation notes, so a search can find "ببجي" too
+    liveTxs(state.ledger).forEach(function (t) {
+      if (t.dl && t.cn && t.n) { var k = resolveCust(state.settings.ca, t.cn).key; notes[k] = (notes[k] || '') + ' ' + t.n; }
+    });
+    list = list.filter(function (c) { return custMatches(c, cm[c.key], notes[c.key] || '', q); });
+    if (!list.length) { box.innerHTML = '<div class="empty">مفيش زبون مطابق للبحث.</div>'; return; }
+  }
   var h = '<div class="card">';
   if (tot.owe > 0 && C.cash < tot.owe) h += '<div class="notice">نقدية الدرج (' + fmt(C.cash) + ') أقل من اللي عليك للناس (' + fmt(tot.owe) + ')</div>';
   h += list.map(function (c) {
-    var lim = (cm[c.key] || {}).lim || 0, over = lim > 0 && Math.abs(c.v) > lim + 0.005;
+    var inf = cm[c.key] || {}, lim = inf.lim || 0, over = lim > 0 && Math.abs(c.v) > lim + 0.005;
     return '<div class="cust"><div class="row2"><b>' + esc(c.n) + (over ? ' <span class="tag bad">فوق الحد</span>' : '') + '</b>' +
       '<span class="num"><span class="small">' + (c.v > 0 ? 'عليه لك' : 'عليك له') + '</span> <b>' + fmt(Math.abs(c.v)) + '</b></span></div>' +
-      '<div class="small num">' + (c.last ? 'آخر حركة ' + dm(c.last) : '') + (lim > 0 ? (c.last ? ' · ' : '') + 'الحد ' + fmt(lim) : '') + '</div>' +
-      '<div class="acts"><button class="btn-ghost" data-cl="' + esc(c.key) + '">الحد</button><button class="btn" data-cs="' + esc(c.key) + '">تسوية</button></div></div>';
+      '<div class="small num">' + (c.last ? 'آخر حركة ' + dm(c.last) : '') + (lim > 0 ? (c.last ? ' · ' : '') + 'الحد ' + fmt(lim) : '') + (inf.ph ? (c.last || lim > 0 ? ' · ' : '') + '<span class="ph" dir="ltr">' + esc(inf.ph) + '</span>' : '') + '</div>' +
+      (inf.note ? '<div class="small">' + esc(inf.note) + '</div>' : '') +
+      '<div class="acts"><button class="btn-ghost" data-ce="' + esc(c.key) + '">تعديل</button><button class="btn-ghost" data-cl="' + esc(c.key) + '">الحد</button><button class="btn" data-cs="' + esc(c.key) + '">تسوية</button></div></div>';
   }).join('');
   box.innerHTML = h + '</div>';
 }
@@ -94,5 +105,29 @@ export function openCustLimit(store, ctx, C, key) {
       toast('اتحفظ الحد');
     };
     $('#clAmt').focus();
+  });
+}
+
+/** @param {ReturnType<typeof import('../store.js').createStore>} store @param {object} ctx @param {import('../../domain/compute.js').ComputeResult} C @param {string} key */
+export function openCustEdit(store, ctx, C, key) {
+  var c = (C.cust || {})[key], inf = (store.getState().settings.cm || {})[key] || {};
+  if (!c) return;
+  var html = '<div class="sheet" role="dialog" aria-label="تعديل زبون">' +
+    '<b>تعديل الزبون</b><p class="small">لو غيّرت الاسم، رصيده وكل حركاته القديمة بتفضل معاه على الاسم الجديد.</p>' +
+    '<label for="ceName">الاسم</label><input id="ceName" autocomplete="off" value="' + esc(c.n) + '">' +
+    '<label for="cePh">رقم الموبايل (اختياري)</label><input id="cePh" dir="ltr" inputmode="tel" autocomplete="off" value="' + esc(inf.ph || '') + '">' +
+    '<label for="ceNote">ملاحظة (اختياري)</label><input id="ceNote" autocomplete="off" value="' + esc(inf.note || '') + '">' +
+    '<div class="row"><button class="btn-ghost" id="ceCancel">إلغاء</button><button class="btn-primary" id="ceSave">حفظ</button></div></div>';
+  openSheet(html, function () {
+    $('#ceCancel').onclick = closeSheet;
+    $('#ceSave').onclick = async function () {
+      var st = store.getState();
+      if (!writable(st)) { toast('استنى لحد ما البيانات تتحمّل', true); return; }
+      var res = await editCustomer(ctx.db, ctx.queue, st.settings, ctx.getCompute().cust, { key: key, name: $('#ceName').value, phone: $('#cePh').value, note: $('#ceNote').value });
+      if (!res.ok) { toast(res.error === 'exists' ? 'الاسم ده لزبون تاني عنده حساب' : 'اكتب اسم الزبون', true); return; }
+      closeSheet();
+      toast('اتحفظ التعديل');
+    };
+    $('#ceName').focus();
   });
 }

@@ -17,9 +17,12 @@ function amtHTML(n, kind, dec) { return '<div class="amt' + (isCashIn(kind) ? ' 
  * @param {import('../../domain/compute.js').ComputeResult} C
  * @param {boolean} withDel show the void button
  * @param {string|null} [delId] the tx id currently in its "confirm void?" state
+ * @param {boolean} [withEdit] show the "edit note" button
  */
-export function groupHTML(L, C, withDel, delId) {
+export function groupHTML(L, C, withDel, delId, withEdit) {
   var t = L[0], pending = withDel && delId === t.id;
+  var edit = withEdit && t.k !== 'settle' ? '<button class="del" data-perm="void" data-tn="' + esc(t.id) + '">ملاحظة</button>' : '';
+  var edm = t.ed ? ' · <span class="tag ed">معدّلة</span>' : '';
   if (t.k === 'settle') {
     var sb = withDel ? '<button class="del" data-perm="void" data-del="' + esc(t.id) + '">' + (pending ? 'تأكيد الإلغاء' : 'إلغاء') + '</button>' : '';
     return '<div class="tx"><div><div class="t1">تسوية آجل · ' + esc(t.cn) + '</div><div class="t2 num">' + hhmm(t.ts) + ' · ' + (t.s === 'rc' ? 'استلمت كاش' : 'دفعت كاش') + '</div></div>' +
@@ -42,9 +45,9 @@ export function groupHTML(L, C, withDel, delId) {
       amt = fsum;
       det = L.map(function (u) { return esc(nm0(u)) + ' ' + fmt(u.a); }).join('، ');
     }
-    return '<div class="tx"><div><div class="t1">' + title + '</div><div class="t2 num">' + hhmm(t.ts) + (ftot ? ' · عمولة ' + fmt(ftot) : '') + (ctot ? ' · رسوم محافظ ' + fm2(ctot) : '') + (t.n ? ' · ' + esc(t.n) : '') + '</div><div class="t2">' + det + '</div></div>' +
-      '<div style="display:flex;align-items:center;gap:4px">' + amtHTML(amt, t.k) + btn + '</div></div>';
+    return '<div class="tx"><div><div class="t1">' + title + '</div><div class="t2 num">' + hhmm(t.ts) + (ftot ? ' · عمولة ' + fmt(ftot) : '') + (ctot ? ' · رسوم محافظ ' + fm2(ctot) : '') + (t.n ? ' · ' + esc(t.n) : '') + edm + '</div><div class="t2">' + det + '</div></div>' +
+      '<div style="display:flex;align-items:center;gap:4px">' + amtHTML(amt, t.k) + edit + btn + '</div></div>';
   }
-  return '<div class="tx"><div><div class="t1">' + (t.pay ? 'دفع / شحن' : KIND[t.k]) + ' · ' + esc(nm0(t)) + '</div><div class="t2 num">' + hhmm(t.ts) + (t.f ? ' · ' + ((baseK(t.k) === 'in' || baseK(t.k) === 'out') ? 'عمولة' : 'خسارة') + ' ' + fmt(t.f) : '') + (t.c ? ' · رسوم محفظة ' + fm2(t.c) : '') + (t.m ? ' · ' + (t.m === 'atm' ? 'ATM' : 'فوري') : '') + (t.n ? ' · ' + esc(t.n) : '') + (t.dl ? ' · آجل: ' + esc(t.cn) : '') + '</div></div>' +
-    '<div style="display:flex;align-items:center;gap:4px">' + amtHTML(t.a, t.k, !!t.pay) + btn + '</div></div>';
+  return '<div class="tx"><div><div class="t1">' + (t.pay ? 'دفع / شحن' : KIND[t.k]) + ' · ' + esc(nm0(t)) + '</div><div class="t2 num">' + hhmm(t.ts) + (t.f ? ' · ' + ((baseK(t.k) === 'in' || baseK(t.k) === 'out') ? 'عمولة' : 'خسارة') + ' ' + fmt(t.f) : '') + (t.c ? ' · رسوم محفظة ' + fm2(t.c) : '') + (t.m ? ' · ' + (t.m === 'atm' ? 'ATM' : 'فوري') : '') + (t.n ? ' · ' + esc(t.n) : '') + edm + (t.dl ? ' · آجل: ' + esc(t.cn) : '') + '</div></div>' +
+    '<div style="display:flex;align-items:center;gap:4px">' + amtHTML(t.a, t.k, !!t.pay) + edit + btn + '</div></div>';
 }

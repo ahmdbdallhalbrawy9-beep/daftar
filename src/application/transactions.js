@@ -153,3 +153,30 @@ export async function voidTransaction(db, queue, clock, deviceId, ledger, txId) 
   await persistTxs(db, queue, deviceId, ledger, voidRecords);
   return { ok: true, records: voidRecords };
 }
+
+/**
+ * Edits only the note of a transaction (every leg of a split group). Amounts, fees, wallets and the
+ * customer never change here, so no balance can move. Marks the record `ed:1` ("edited").
+ * The record is rewritten inside the day-doc that holds it; old app versions ignore the `ed` flag.
+ * @param {import('./ports.js').DbPort} db
+ * @param {(fn: () => Promise<any>) => Promise<any>} queue
+ * @param {Record<string, object[]>} ledger
+ * @param {string} txId
+ * @param {string} note
+ */
+export async function editTxNote(db, queue, ledger, txId, note) {
+  var docId = null, tx = null;
+  Object.keys(ledger).forEach(function (k) {
+    (ledger[k] || []).forEach(function (t) { if (t.id === txId) { docId = k; tx = t; } });
+  });
+  if (!docId || !tx || tx.k === 'void' || tx.k === 'settle') return { ok: false, error: 'not-found' };
+  var n = String(note || '').trim(), g = tx.g, id = /** @type {string} */ (docId);
+  var txs = (ledger[id] || []).map(function (t) {
+    if (t.id !== txId && !(g && t.g === g)) return t;
+    var u = Object.assign({}, t, { ed: 1 });
+    if (n) u.n = n; else delete u.n;
+    return u;
+  });
+  await queue(function () { return db.collection('ledger').doc(id).set({ day: id.slice(0, 8), dev: id.slice(9), txs: txs }); });
+  return { ok: true };
+}
