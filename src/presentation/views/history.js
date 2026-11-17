@@ -31,10 +31,10 @@ export function renderHist(store, C) {
   if (!op && state.settings.openDay === dk) op = { a: state.settings.openAmt || 0, ts: state.settings.openTs || 0 };
   var sg = function (n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n)); };
   $('#hTiles').innerHTML =
-    '<div class="tile hero"><span>صافي الربح</span><b>' + fm2(sm.pf) + ' ج</b></div>' +
+    '<div class="tile hero" data-perm="profit"><span>صافي الربح</span><b>' + fm2(sm.pf) + ' ج</b></div>' +
     '<div class="tile"><span>عدد العمليات</span><b>' + sm.n + '</b></div>' +
-    '<div class="tile"><span>عمولات الزبائن</span><b>' + fmt(sm.cf) + '</b></div>' +
-    '<div class="tile"><span>رسوم المحافظ</span><b>' + fm2(sm.wf) + '</b></div>' +
+    '<div class="tile" data-perm="profit"><span>عمولات الزبائن</span><b>' + fmt(sm.cf) + '</b></div>' +
+    '<div class="tile" data-perm="profit"><span>رسوم المحافظ</span><b>' + fm2(sm.wf) + '</b></div>' +
     '<div class="tile"><span>حركة الدرج</span><b>' + sg(sm.cash) + '</b></div>' +
     '<div class="tile" style="grid-column:1/-1"><span>نقدية الدرج أول اليوم</span><b>' + (op ? fmt(op.a) + ' ج' : 'مش مسجّلة') + '</b></div>';
   var items = txGroups(list).map(function (L) { return { ts: L[0].ts, html: groupHTML(L, C, false, null) }; });

@@ -28,6 +28,21 @@ export function saveInbox(db, queue, deviceId, inboxPatch) {
 }
 
 /**
+ * Every SMS item any phone has seen, by id (later phones' fields win).
+ * @param {Record<string, {items?: object}>} inbox
+ * @returns {Record<string, any>}
+ */
+export function allInboxItems(inbox) {
+  /** @type {Record<string, any>} */
+  var all = {};
+  Object.keys(inbox || {}).forEach(function (d) {
+    var o = inbox[d] || {};
+    Object.keys(o.items || {}).forEach(function (i) { all[i] = Object.assign(all[i] || {}, /** @type {any} */ (o.items)[i]); });
+  });
+  return all;
+}
+
+/**
  * Pending SMS-derived operations not yet confirmed or ignored, each with a
  * suggested wallet (`.sug`) guessed from the destination phone or the
  * resulting balance the SMS reported.
@@ -62,6 +77,12 @@ export function pendingItems(wallets, inbox, liveTxList, computeResult) {
       if (hit.length === 1) pick = hit[0].id;
     }
     it.sug = pick;
+    // matched by phone number (not by balance): tell the card if the balance after the SMS disagrees with the app
+    delete it.drift;
+    if (pick && it.wn && it.bal != null) {
+      var dr = Math.round((it.bal - (vb[pick] + delta)) * 100) / 100;
+      if (Math.abs(dr) > 0.5) { it.drift = dr; it.driftTo = Math.round((vb[pick] + delta) * 100) / 100; }
+    }
     if (pick) vb[pick] += delta;
   });
   return list;

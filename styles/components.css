@@ -163,3 +163,9 @@
 
 .limnote{font-size:var(--fs-xs);font-weight:600;color:var(--warn);background:var(--warn-soft);border-radius:var(--r-sm);padding:2px 8px;align-self:flex-start;margin-top:3px}
 .dev{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);align-items:center;gap:8px}
+
+/* per-phone permissions: the owner switches a feature off for a phone -> its elements are hidden */
+.np-profit [data-perm="profit"], .np-settings [data-perm="settings"], .np-void [data-perm="void"],
+.np-wallets [data-perm="wallets"], .np-close [data-perm="close"], .np-credit [data-perm="credit"] { display: none !important; }
+.row2.dev + .devperm { margin-block: 0 6px; }
+.btn-ghost.bad { border-color: var(--bad); color: var(--bad); }

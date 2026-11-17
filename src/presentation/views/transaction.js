@@ -104,10 +104,10 @@ export function renderTx(store, C) {
 
   var s = '';
   if (A > 0) {
-    if (dfOn && bk === 'out') s = '<div>العميل هيدفع لك <b>' + fmt(A + F) + '</b> كاش بعدين</div><span class="muted">المحفظة بتنقص ' + fm2(A + c) + (c ? ' (منها رسوم ' + fm2(c) + ')' : '') + ' · الدرج ما بيتأثرش · صافي ربحك ' + fm2(F - c) + '</span>';
-    else if (dfOn && bk === 'in') s = '<div>هتدّي العميل <b>' + fmt(A - F) + '</b> كاش بعدين</div><span class="muted">المحفظة بتزيد ' + fmt(A) + ' · الدرج ما بيتأثرش · ربحك ' + fmt(F) + '</span>';
-    else if (bk === 'out') s = '<div>هتاخد من الزبون <b>' + fmt(A + F) + '</b> كاش</div><span class="muted">المحفظة بتنقص ' + fm2(A + c) + (c ? ' (منها رسوم ' + fm2(c) + ')' : '') + ' · صافي ربحك ' + fm2(F - c) + '</span>';
-    else if (bk === 'in') s = '<div>هتدّي الزبون <b>' + fmt(A - F) + '</b> كاش</div><span class="muted">المحفظة بتزيد ' + fmt(A) + ' · ربحك ' + fmt(F) + '</span>';
+    if (dfOn && bk === 'out') s = '<div>العميل هيدفع لك <b>' + fmt(A + F) + '</b> كاش بعدين</div><span class="muted">المحفظة بتنقص ' + fm2(A + c) + (c ? ' (منها رسوم ' + fm2(c) + ')' : '') + ' · الدرج ما بيتأثرش<span data-perm="profit"> · صافي ربحك ' + fm2(F - c) + '</span></span>';
+    else if (dfOn && bk === 'in') s = '<div>هتدّي العميل <b>' + fmt(A - F) + '</b> كاش بعدين</div><span class="muted">المحفظة بتزيد ' + fmt(A) + ' · الدرج ما بيتأثرش<span data-perm="profit"> · ربحك ' + fmt(F) + '</span></span>';
+    else if (bk === 'out') s = '<div>هتاخد من الزبون <b>' + fmt(A + F) + '</b> كاش</div><span class="muted">المحفظة بتنقص ' + fm2(A + c) + (c ? ' (منها رسوم ' + fm2(c) + ')' : '') + '<span data-perm="profit"> · صافي ربحك ' + fm2(F - c) + '</span></span>';
+    else if (bk === 'in') s = '<div>هتدّي الزبون <b>' + fmt(A - F) + '</b> كاش</div><span class="muted">المحفظة بتزيد ' + fmt(A) + '<span data-perm="profit"> · ربحك ' + fmt(F) + '</span></span>';
     else if (k === 'topup') s = '<div>هتطلع <b>' + fmt(A) + '</b> من الدرج وتحطها في المحفظة</div>';
     else if (k === 'itopup') s = '<div>هتطلع <b>' + fmt(A + F) + '</b> من الدرج</div><span class="muted">الحساب بيزيد ' + fmt(A) + ' · رسوم ' + fmt(F) + '</span>';
     else if (k === 'cashout') s = '<div>هتاخد <b>' + fmt(A - F) + '</b> كاش في الدرج</div><span class="muted">المحفظة بتنقص ' + fmt(A) + ' · خسارة ' + fmt(F) + '</span>';
@@ -209,7 +209,7 @@ export function renderSplit(store, C, A, F) {
     else info.textContent = 'هتتجمّع ' + fm2(pl.sum) + ' من المحافظ التانية، والتحويل النهائي ' + fm2(A) + ' من المجمِّعة';
   }
   var s = '';
-  if (A > 0) s = '<div>هتاخد من الزبون <b>' + fmt(A + F) + '</b> كاش</div><span class="muted">رسوم المحافظ ' + fm2(pl.ctot) + ' · صافي ربحك ' + fm2(F - pl.ctot) + '</span>';
+  if (A > 0) s = '<div>هتاخد من الزبون <b>' + fmt(A + F) + '</b> كاش</div><span class="muted">رسوم المحافظ ' + fm2(pl.ctot) + '<span data-perm="profit"> · صافي ربحك ' + fm2(F - pl.ctot) + '</span></span>';
   else s = '<span class="muted">اكتب المبلغ وبعدين وزّعه على المحافظ</span>';
   if (pl.stuckM) s += '<div class="cashwarn">' + MSG_SM + '</div>';
   else if (pl.stuckD) s += '<div class="cashwarn soft">' + WARN_SD + '</div>';

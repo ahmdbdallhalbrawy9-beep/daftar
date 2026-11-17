@@ -105,10 +105,10 @@ export function renderDay(store, C) {
   var bk = +(getItem('dw_bk') || 0);
   $('#bkNotice').innerHTML = (Date.now() - bk > 7 * 864e5) ? '<div class="notice">خد نسخة احتياطية من الإعدادات. البيانات على الموبايل ده بس.</div>' : '';
   $('#tiles').innerHTML =
-    '<div class="tile hero"><span>صافي ربح اليوم (بعد الخسارة)</span><b>' + fmt(C.pDay) + ' ج</b></div>' +
-    '<div class="tile"><span>ربح فودافون</span><b>' + fmt(C.pDay - C.pDayI) + '</b></div>' +
-    '<div class="tile"><span>ربح إنستاباي</span><b>' + fmt(C.pDayI) + '</b></div>' +
-    '<div class="tile"><span>ربح الشهر</span><b>' + fmt(C.pMon) + '</b></div>' +
+    '<div class="tile hero" data-perm="profit"><span>صافي ربح اليوم (بعد الخسارة)</span><b>' + fmt(C.pDay) + ' ج</b></div>' +
+    '<div class="tile" data-perm="profit"><span>ربح فودافون</span><b>' + fmt(C.pDay - C.pDayI) + '</b></div>' +
+    '<div class="tile" data-perm="profit"><span>ربح إنستاباي</span><b>' + fmt(C.pDayI) + '</b></div>' +
+    '<div class="tile" data-perm="profit"><span>ربح الشهر</span><b>' + fmt(C.pMon) + '</b></div>' +
     '<div class="tile"><span>عمليات اليوم</span><b>' + C.nDay + '</b></div>' +
     '<div class="tile" style="grid-column:1/-1"><span>النقدي المتوقع في الدرج</span><b>' + fmt(C.cash) + ' ج</b></div>';
   var bt = walletTotals(state.wallets, C);

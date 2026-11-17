@@ -17,9 +17,11 @@ export function registerDevice(db, queue, clock, deviceId, devices, info) {
   var cur = devices && devices[deviceId];
   var now = clock.now();
   if (cur && cur.name === info.name && cur.os === info.os && now - (cur.ts || 0) < REFRESH_MS) return Promise.resolve({ ok: true, skipped: true });
-  var rec = { kind: 'device', name: info.name, os: info.os, ts: now, first: (cur && cur.first) || now };
-  return queue(function () { return db.collection('settings').doc('dev_' + deviceId).set(rec); })
-    .then(function () { return { ok: true }; });
+  var doc = db.collection('settings').doc('dev_' + deviceId);
+  // an existing doc is refreshed with `update` so the owner's `perm` flags are never overwritten
+  if (cur) return queue(function () { return doc.update({ name: info.name, os: info.os, ts: now }); }).then(function () { return { ok: true }; });
+  var rec = { kind: 'device', name: info.name, os: info.os, ts: now, first: now };
+  return queue(function () { return doc.set(rec); }).then(function () { return { ok: true }; });
 }
 
 /**
@@ -29,5 +31,17 @@ export function registerDevice(db, queue, clock, deviceId, devices, info) {
  */
 export function removeDevice(db, queue, deviceId) {
   return queue(function () { return db.collection('settings').doc('dev_' + deviceId).delete(); })
+    .then(function () { return { ok: true }; });
+}
+
+/**
+ * Owner sets what one phone may do (`perm` = only the flags that are off).
+ * @param {import('./ports.js').DbPort} db
+ * @param {(fn: () => Promise<any>) => Promise<any>} queue
+ * @param {string} deviceId
+ * @param {Record<string, boolean>} perm
+ */
+export function setDevicePerm(db, queue, deviceId, perm) {
+  return queue(function () { return db.collection('settings').doc('dev_' + deviceId).update({ perm: perm }); })
     .then(function () { return { ok: true }; });
 }

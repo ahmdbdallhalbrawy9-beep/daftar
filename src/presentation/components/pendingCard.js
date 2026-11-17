@@ -40,7 +40,7 @@ export function renderPend(store, computeResult, smsAvailable) {
   var state = store.getState();
   var box = $('#pendBox');
   var items = pendingItems(state.wallets, state.inbox, liveTxs(state.ledger), computeResult);
-  var key = items.map(function (i) { return i.id + ':' + (i.sug || '') + ':' + (i.bal == null ? '' : i.bal); }).join('|') +
+  var key = items.map(function (i) { return i.id + ':' + (i.sug || '') + ':' + (i.bal == null ? '' : i.bal) + ':' + (i.drift || ''); }).join('|') +
     '|' + state.wallets.map(function (w) { return w.id + w.name; }).join(',') + '|' + (smsAvailable ? 1 : 0);
   $('#smsInfo').textContent = smsAvailable
     ? 'التطبيق بيقرا رسائل فودافون كاش على الموبايل ده ويعرضها كعمليات مقترحة تأكدها بضغطة.'
@@ -62,8 +62,9 @@ export function renderPend(store, computeResult, smsAvailable) {
       '<div class="small num">' + (it.p ? esc(it.p) + ' · ' : '') + (it.c ? 'رسوم المحفظة ' + fm2(it.c) + ' · ' : '') + (it.bal != null ? 'الرصيد بعدها ' + fm2(it.bal) : '') + '</div>' +
       '<div class="row"><select data-pw><option value="">اختار المحفظة</option>' + ws.map(function (w) { return '<option value="' + esc(w.id) + '"' + (w.id === it.sug ? ' selected' : '') + '>' + esc(w.name) + (w.phone ? ' · ' + esc(w.phone) : '') + '</option>'; }).join('') + '</select>' +
       (isF ? '<input data-pf inputmode="decimal" autocomplete="off" placeholder="' + lbl + '" value="' + defF + '">' : '') + '</div>' +
+      (it.drift ? '<div class="cashwarn soft">الرصيد بعد العملية في الرسالة ' + fm2(it.bal) + ' والتطبيق هيبقى ' + fm2(it.driftTo) + ' (فرق ' + fm2(Math.abs(it.drift)) + '). فيه عملية ناقصة أو غلط.</div>' : '') +
       '<div data-pwarn="1">' + (pw0 ? '<div class="cashwarn soft">' + esc(pw0) + '</div>' : '') + '</div>' +
-      (canDef ? '<details class="xtra"><summary>خيارات إضافية</summary><div class="xtra-body"><label class="check"><input type="checkbox" data-pdl="1"> آجل (الكاش هيتسلّم بعدين)</label><input data-pcn="1" autocomplete="off" list="custList" placeholder="اسم العميل"></div></details>' : '') +
+      (canDef ? '<details class="xtra" data-perm="credit"><summary>خيارات إضافية</summary><div class="xtra-body"><label class="check"><input type="checkbox" data-pdl="1"> آجل (الكاش هيتسلّم بعدين)</label><input data-pcn="1" autocomplete="off" list="custList" placeholder="اسم العميل"></div></details>' : '') +
       '<div class="row"><button class="btn-ghost" data-pig="1">تجاهل</button><button class="btn-primary" data-pok="1">تسجيل</button></div></div>';
   });
   box.innerHTML = h + '</div>';
