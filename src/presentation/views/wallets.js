@@ -3,8 +3,12 @@
 // index.html's `renderWallets`/`openSheet` (wallet-edit half)/`saveWallet`.
 import { walletTotals, walletInUse } from '../../domain/wallets.js';
 import { walletRoom } from '../../domain/limits.js';
+import { balanceDrift } from '../../domain/drift.js';
+import { liveTxs } from '../../domain/ledger.js';
+import { allInboxItems } from '../../application/smsImport.js';
+import { hhmm } from '../../domain/time.js';
 import { $ } from '../dom.js';
-import { fmt, esc } from '../formatters.js';
+import { fmt, fm2, esc } from '../formatters.js';
 import { limBar } from '../components/bars.js';
 import { openSheet, closeSheet } from '../components/sheet.js';
 import { toast } from '../components/toast.js';
@@ -29,10 +33,11 @@ export function renderWallets(store, C) {
     g.innerHTML = '<div class="empty" style="grid-column:1/-1">' + (state.wallets.length ? 'مفيش حسابات في القسم ده. اضغط "+ محفظة" وضيف.' : 'مفيش محافظ لسه. ابدأ من تبويب "عملية".') + '</div>';
     return;
   }
+  var liveList = liveTxs(state.ledger), smsItems = allInboxItems(state.inbox);
   g.innerHTML = list.map(function (w) {
     var x = C.W[w.id], dl = w.dayLimit || state.settings.defDay, ml = w.monthLimit || state.settings.defMon, r = walletRoom(dl, ml, x);
     return '<button class="wcard' + (w.active === false ? ' off' : '') + '" data-edit="' + esc(w.id) + '"><div class="l1" style="display:flex;justify-content:space-between;align-items:baseline"><b>' + esc(w.name) + (w.type === 'insta' ? ' <span class="tag">إنستاباي</span>' : '') + (w.active === false ? ' <span class="tag">متوقفة</span>' : '') + '</b><span class="bal">' + fmt(x.bal) + '</span></div>' +
-      (w.phone ? '<div class="small num">' + esc(w.phone) + '</div>' : '') + limBar('اليوم', { out: r.dOut, in: r.dIn }, dl) + limBar('الشهر', { out: r.mOut, in: r.mIn }, ml) + '</button>';
+      (w.phone ? '<div class="small num">' + esc(w.phone) + '</div>' : '') + limBar('اليوم', { out: r.dOut, in: r.dIn }, dl) + limBar('الشهر', { out: r.mOut, in: r.mIn }, ml) + driftHTML(w, x, liveList, smsItems) + '</button>';
   }).join('');
 }
 
@@ -120,4 +125,12 @@ async function deleteWalletAction(store, ctx, w, bal) {
   var res = await deleteWallet(ctx.db, ctx.queue, state.ledger, w.id);
   if (res.ok) toast('اتمسحت المحفظة');
   else toast('مينفعش تتمسح', true);
+}
+
+/** Soft warning when the last confirmed SMS balance disagrees with the app's balance for this wallet. */
+function driftHTML(w, x, liveList, smsItems) {
+  if (w.active === false) return '';
+  var d = balanceDrift(w, x.bal, liveList, smsItems);
+  if (!d) return '';
+  return '<div class="cashwarn soft">آخر رسالة (' + hhmm(d.at) + ') رصيد المحفظة فيها ' + fm2(d.smsBal) + ' والتطبيق شايف ' + fm2(d.expected) + ' · فرق ' + fm2(Math.abs(d.diff)) + '. فيه عملية ناقصة أو غلط.</div>';
 }

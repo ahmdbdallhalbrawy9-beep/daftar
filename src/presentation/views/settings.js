@@ -12,7 +12,9 @@ import { NUM } from '../../domain/numbers.js';
 import { dayKey, hhmm } from '../../domain/time.js';
 import { esc } from '../formatters.js';
 import { anyPending } from '../../application/sync.js';
-import { removeDevice } from '../../application/devices.js';
+import { removeDevice, setDevicePerm } from '../../application/devices.js';
+import { PERMS, permsOf, withPerm } from '../../domain/perms.js';
+import { readIndex, readSnapshot, savePreRestore } from '../../application/autoBackup.js';
 import { writable } from '../../application/sync.js';
 import { saveSettings, setWipePassword, changeWipePassword } from '../../application/settingsUseCases.js';
 import { wipeAllData, wipeTransactions } from '../../application/wipe.js';
@@ -54,6 +56,7 @@ export function renderSet(store, deviceId) {
 function renderDevices(store, deviceId) {
   var state = store.getState();
   $('#devCard').hidden = state.mode !== 'cloud';
+  $('#abCard').hidden = state.mode !== 'cloud';
   if (state.mode !== 'cloud') return;
   var pend = anyPending(state.meta), off = navigator.onLine === false;
   var ls = state.lastSync || +(getItem('dw_lastsync') || 0);
@@ -62,12 +65,33 @@ function renderDevices(store, deviceId) {
       : 'كل اللي على الموبايل ده اترفع.') + (ls ? ' آخر مزامنة ' + new Date(ls).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: 'Africa/Cairo', day: 'numeric', month: 'numeric' }) + ' ' + hhmm(ls) + '.' : '');
   var ids = Object.keys(state.devices || {}).sort(function (a, b) { return (state.devices[b].ts || 0) - (state.devices[a].ts || 0); });
   var now = Date.now();
+  var dkey = ids.map(function (id) { var d = state.devices[id]; return id + ':' + (d.ts || 0) + ':' + JSON.stringify(d.perm || {}) + ':' + (permOpen[id] ? 1 : 0); }).join('|') + '|' + deviceId;
+  if ($('#devList').dataset.k === dkey) return;
+  $('#devList').dataset.k = dkey;
   $('#devList').innerHTML = ids.length ? '<div class="small" style="margin-top:8px">الموبايلات المسجّلة على الحساب (' + ids.length + ')</div>' + ids.map(function (id) {
     var d = state.devices[id], me = id === deviceId, ago = now - (d.ts || 0);
     var seen = me ? 'ده الموبايل ده' : ago < 3600e3 ? 'ظهر من شوية' : 'آخر ظهور ' + new Date(d.ts || 0).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: 'Africa/Cairo', day: 'numeric', month: 'numeric' }) + ' ' + hhmm(d.ts || 0);
     return '<div class="row2 dev"><div><b>' + esc(d.name || 'موبايل') + '</b><div class="small num">' + esc(d.os || '') + ' · ' + seen + '</div></div>' +
-      (me ? '' : '<button class="btn-ghost" data-devdel="' + esc(id) + '" style="flex:0 0 auto">شيل</button>') + '</div>';
+      (me ? '' : '<button class="btn-ghost" data-devdel="' + esc(id) + '" style="flex:0 0 auto">شيل</button>') + '</div>' +
+      (me ? '' : '<details class="xtra devperm" data-devid="' + esc(id) + '"' + (permOpen[id] ? ' open' : '') + '><summary>الصلاحيات</summary><div class="xtra-body">' +
+        PERMS.map(function (pm) { var on = permsOf(d)[pm[0]]; return '<label class="check"><input type="checkbox" data-permset="' + esc(id) + '|' + pm[0] + '"' + (on ? ' checked' : '') + '> ' + pm[1] + '</label>'; }).join('') + '</div></details>');
   }).join('') : '';
+}
+
+/** which phones' permission lists are expanded (kept across re-renders) */
+var permOpen = {};
+document.addEventListener('toggle', function (e) {
+  var el = /** @type {HTMLElement} */ (e.target);
+  if (el && el.classList && el.classList.contains('devperm')) permOpen[/** @type {string} */ (el.dataset.devid)] = /** @type {HTMLDetailsElement} */ (el).open;
+}, true);
+
+/** A checkbox in a phone's permission list changed. */
+export async function setPermAction(store, ctx, input) {
+  var parts = input.dataset.permset.split('|'), id = parts[0], key = parts[1];
+  var dev = (store.getState().devices || {})[id];
+  if (!dev) return;
+  await setDevicePerm(ctx.db, ctx.queue, id, withPerm(dev.perm, key, input.checked));
+  toast(input.checked ? 'اتفعّلت الصلاحية' : 'اتقفلت الصلاحية على الموبايل ده');
 }
 
 var devT;
@@ -220,4 +244,40 @@ export function installAction(store) {
 export function setThemeAction(store, choice) {
   applyTheme(choice === 'auto' ? null : choice);
   store.notify();
+}
+
+/* ---------- automatic daily backups (kept in the account) ---------- */
+var abIndex = null;
+
+/** Lists the saved daily backups with a two-tap restore button each. */
+export async function showAutoBackups(store, ctx) {
+  var box = $('#abList');
+  box.innerHTML = '<div class="small">جارٍ التحميل…</div>';
+  try { abIndex = await readIndex(ctx.db); } catch (e) { box.innerHTML = '<div class="small">تعذّر تحميل القايمة. اتأكد من النت.</div>'; return; }
+  var days = Object.keys(abIndex.days).sort().reverse();
+  box.innerHTML = (days.length ? days.map(function (d) { return abRow(d, d.slice(6) + '/' + d.slice(4, 6) + '/' + d.slice(0, 4)); }).join('') : '<div class="small">لسه مفيش نسخ تلقائية. أول نسخة بتتاخد أول مرة تفتح التطبيق بعد التحديث.</div>') +
+    (abIndex.pre ? abRow('pre', 'قبل آخر استرجاع') : '');
+}
+function abRow(key, label) {
+  return '<div class="row2 dev"><b class="num">' + esc(label) + '</b><button class="btn-ghost" data-abrestore="' + esc(key) + '" style="flex:0 0 auto">استرجاع</button></div>';
+}
+
+var abT;
+/** Two taps: first arms, second replaces ALL current data with that day's backup (current data is kept as "قبل آخر استرجاع"). */
+export async function restoreAutoBackupAction(store, ctx, btn) {
+  var state = store.getState();
+  if (!writable(state)) { toast('استنى لحد ما البيانات تتحمّل', true); return; }
+  if (btn.dataset.armed !== '1') {
+    btn.dataset.armed = '1'; btn.classList.add('bad'); btn.textContent = 'تأكيد: استبدال كل البيانات';
+    clearTimeout(abT); abT = setTimeout(function () { if (btn.isConnected) { btn.dataset.armed = ''; btn.classList.remove('bad'); btn.textContent = 'استرجاع'; } }, 4000);
+    return;
+  }
+  var name = btn.dataset.abrestore, n = name === 'pre' ? abIndex && abIndex.pre : abIndex && abIndex.days[name];
+  if (!n) { toast('النسخة دي مش موجودة', true); return; }
+  btn.disabled = true; btn.textContent = 'جارٍ الاسترجاع…';
+  var flat = await readSnapshot(ctx.db, name, n);
+  if (!flat) { toast('النسخة ناقصة، مينفعش تتسترجع', true); btn.disabled = false; return; }
+  await savePreRestore(ctx.db, ctx.queue, ctx.clock, state.raw);
+  var res = await restoreBackup(ctx.db, ctx.queue, state.raw, flat);
+  if (res.ok) { toast('اتسترجعت النسخة'); store.patchUI({ invKey: '' }); showAutoBackups(store, ctx); }
 }

@@ -22,17 +22,20 @@ import { renderHist } from './presentation/views/history.js';
 import {
   renderSet, saveRatesAction, saveSetAction, pwSetAction, pwChangeAction,
   wipeAllAction, doWipeAction, bkExportAction, bkFileChangeAction, bkConfirmAction,
-  logoutAction, installAction, setThemeAction, removeDeviceAction,
+  logoutAction, installAction, setThemeAction, removeDeviceAction, setPermAction,
+  showAutoBackups, restoreAutoBackupAction,
 } from './presentation/views/settings.js';
 import { showAuth, authGoAction, authResetAction } from './presentation/views/login.js';
 
 import { compute } from './domain/compute.js';
 import { dayKey, shiftDay } from './domain/time.js';
 import { liveTxs } from './domain/ledger.js';
+import { PERMS, permsOf } from './domain/perms.js';
 
 import { freshSyncState, startSync, stopSync, writable, anyPending } from './application/sync.js';
 import { scanForSms } from './application/smsImport.js';
 import { registerDevice } from './application/devices.js';
+import { runAutoBackup } from './application/autoBackup.js';
 import { describeDevice } from './infrastructure/deviceInfo.js';
 
 import { getItem, setItem } from './infrastructure/storage.js';
@@ -54,7 +57,7 @@ var queue = createWriteQueue(function (e) { toast('تعذّر الحفظ: ' + ((
 var db = null;
 var authPort = null;
 var nudge = function () { /* set once Firebase is up */ };
-var devInfo = null, devBusy = false;
+var devInfo = null, devBusy = false, abBusy = false;
 
 function getCtx() {
   return { db: db, queue: queue, clock: clock, deviceId: deviceId, auth: authPort, sha: sha, getCompute: currentCompute };
@@ -79,7 +82,36 @@ function renderAll() {
   renderHist(store, C);
   renderPend(store, C, !!getSmsPlugin());
   renderGuide(store);
+  applyPerms();
   maybeRegisterDevice(state);
+  maybeAutoBackup(state, false);
+}
+
+/** What this phone may do (the owner sets it per phone in settings). Local mode and unregistered phones: everything. */
+function myPerms() {
+  var s = store.getState();
+  return permsOf(s.mode === 'cloud' ? (s.devices || {})[deviceId] : null);
+}
+
+// switched-off features are hidden with CSS (`np-<perm>` classes on <html>); the click handler re-checks every action
+function applyPerms() {
+  var p = myPerms(), cl = document.documentElement.classList;
+  PERMS.forEach(function (x) { cl.toggle('np-' + x[0], !p[x[0]]); });
+  var tab = store.getState().ui.tab;
+  if ((tab === 'set' && !p.settings) || (tab === 'credit' && !p.credit)) showTab(store, 'tx');
+}
+
+// one automatic backup a day, taken by the first phone that opens the app with fresh server data
+async function maybeAutoBackup(state, force) {
+  if (state.mode !== 'cloud' || !db || !writable(state) || abBusy) return;
+  var fresh = ['ledger', 'wallets', 'settings', 'closes'].every(function (c) { return state.meta[c] && !state.meta[c].fc; });
+  if (!fresh) return;
+  var day = dayKey(Date.now());
+  if (!force && getItem('dw_autobk') === day) return;
+  abBusy = true;
+  try { setItem('dw_autobk', day); await runAutoBackup(db, queue, clock, state.raw, force); }
+  catch (e) { setItem('dw_autobk', ''); }
+  finally { setTimeout(function () { abBusy = false; }, 20000); }
 }
 
 // keep this phone listed in settings → المزامنة والموبايلات (cloud mode only, once synced)
@@ -117,7 +149,16 @@ document.addEventListener('click', function (e) {
   var state = store.getState();
   var C = currentCompute();
 
+  var perms = myPerms();
+  if (t.dataset.t === 'set' && !perms.settings) return;
+  if (t.dataset.t === 'credit' && !perms.credit) return;
+  if (t.dataset.del && !perms.void) { toast('مفيش صلاحية لإلغاء العمليات على الموبايل ده', true); return; }
+  if ((t.dataset.edit || t.id === 'addWallet') && !perms.wallets) { toast('مفيش صلاحية لتعديل المحافظ على الموبايل ده', true); return; }
+  if (t.id === 'closeBtn' && !perms.close) return;
+  if ((t.dataset.cs || t.dataset.cl) && !perms.credit) return;
   if (t.dataset.t) return showTab(store, t.dataset.t);
+  if (t.id === 'abShow') return showAutoBackups(store, getCtx());
+  if (t.dataset.abrestore) return restoreAutoBackupAction(store, getCtx(), t);
   if (t.id === 'syncNow') { nudge(); toast('بيحاول يزامن…'); return; }
   if (t.dataset.devdel) return removeDeviceAction(getCtx(), t);
   if (t.dataset.oc) return openCashSheet(store, getCtx(), C);
@@ -155,7 +196,7 @@ document.addEventListener('click', function (e) {
   if (t.id === 'doSetup') return doSetupAction(store, getCtx());
   if (t.id === 'save') return saveAction(store, getCtx(), C);
   if (t.id === 'addWallet') return openWalletSheet(store, getCtx(), C, null);
-  if (t.id === 'closeBtn') return doCloseAction(store, getCtx(), C);
+  if (t.id === 'closeBtn') { doCloseAction(store, getCtx(), C); setTimeout(function () { maybeAutoBackup(store.getState(), true); }, 4000); return; }
   if (t.id === 'wipeBtn') return doWipeAction(store, getCtx(), C);
   if (t.id === 'bkExport') return bkExportAction(store);
   if (t.id === 'bkConfirm') return bkConfirmAction(store, getCtx(), t);
@@ -197,6 +238,10 @@ $('#fee').addEventListener('input', function () { store.patchUI({ feeManual: tru
 $('#cost').addEventListener('input', function () { store.patchUI({ costManual: true }); });
 $('#invCash').addEventListener('input', function () { updateDiffs(currentCompute()); });
 $('#invRows').addEventListener('input', function () { updateDiffs(currentCompute()); });
+document.addEventListener('change', function (e) {
+  var el = /** @type {HTMLInputElement} */ (e.target);
+  if (el && el.dataset && el.dataset.permset) setPermAction(store, getCtx(), el);
+});
 $('#bkFile').addEventListener('change', function (e) { bkFileChangeAction(store, e.target); });
 
 setInterval(function () { if (!document.hidden) { store.notify(); scanSmsAction(false); if (anyPending(store.getState().meta)) nudge(); } }, 60000);
