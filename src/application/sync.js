@@ -6,6 +6,7 @@
 // subscribers). That is the only thing this module needs from "the store" —
 // it never imports presentation.
 import { DEFAULTS } from '../domain/money.js';
+import { rawInbox } from './smsImport.js';
 
 /**
  * @typedef {object} Store
@@ -85,7 +86,10 @@ export function startSync(db, store, deps) {
     patch.settings = Object.assign({}, DEFAULTS, d ? d.data() : {});
     var ib = {};
     snap.docs.forEach(function (x) { if (x.id.indexOf('inbox_') === 0) ib[x.id.slice(6)] = x.data() || {}; });
-    patch.inbox = ib;
+    var raws = {};
+    snap.docs.forEach(function (x) { if (x.id.indexOf('rawsms_') === 0) raws[x.id.slice(7)] = x.data() || {}; });
+    patch.inbox = Object.assign(ib, rawInbox(raws));
+    patch.rawTs = Object.keys(raws).reduce(function (o, k) { o[k] = (raws[k] || {}).ts || 0; return o; }, {});
     var dv = {};
     snap.docs.forEach(function (x) { if (x.id.indexOf('dev_') === 0) dv[x.id.slice(4)] = x.data() || {}; });
     patch.devices = dv;

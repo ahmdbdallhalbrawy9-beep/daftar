@@ -28,6 +28,30 @@ export function saveInbox(db, queue, deviceId, inboxPatch) {
 }
 
 /**
+ * Turns the raw messages another phone uploaded in the background (`settings/rawsms_<dev>`:
+ * items id -> {a: sender, b: body, d: date ms}) into inbox entries, parsed with the same parser
+ * as a normal scan, so an SMS has the same id whichever way it arrived.
+ * @param {Record<string, {items?: Record<string, {a?: string, b?: string, d?: number}>}>} raws keyed by device id
+ * @returns {Record<string, {items: Record<string, any>, ign: string[]}>} keyed '~raw~<dev>'
+ */
+export function rawInbox(raws) {
+  /** @type {Record<string, {items: Record<string, any>, ign: string[]}>} */
+  var out = {};
+  Object.keys(raws || {}).forEach(function (dev) {
+    var items = {};
+    var src = (raws[dev] || {}).items || {};
+    Object.keys(src).forEach(function (k) {
+      var m = src[k] || {};
+      if (!/vf/i.test(String(m.a || '')) || !m.b) return;
+      var it = parseSms(String(m.b), Number(m.d) || 0);
+      if (it && it.id) items[it.id] = it;
+    });
+    out['~raw~' + dev] = { items: items, ign: [] };
+  });
+  return out;
+}
+
+/**
  * Every SMS item any phone has seen, by id (later phones' fields win).
  * @param {Record<string, {items?: object}>} inbox
  * @returns {Record<string, any>}

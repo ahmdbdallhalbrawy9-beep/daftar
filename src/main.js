@@ -38,7 +38,9 @@ import { registerDevice } from './application/devices.js';
 import { runAutoBackup } from './application/autoBackup.js';
 import { describeDevice } from './infrastructure/deviceInfo.js';
 
-import { getItem, setItem } from './infrastructure/storage.js';
+import { getItem, setItem, removeItem } from './infrastructure/storage.js';
+import { getNative } from './infrastructure/nativeBridge.js';
+import { limitNotifications, pruneSent, noteId } from './domain/limitNotify.js';
 import { getDeviceId } from './infrastructure/deviceId.js';
 import { sha } from './infrastructure/crypto.js';
 import { createWriteQueue } from './infrastructure/writeQueue.js';
@@ -85,6 +87,7 @@ function renderAll() {
   applyPerms();
   maybeRegisterDevice(state);
   maybeAutoBackup(state, false);
+  maybeLimitNotify(state, C);
 }
 
 /** What this phone may do (the owner sets it per phone in settings). Local mode and unregistered phones: everything. */
@@ -112,6 +115,67 @@ async function maybeAutoBackup(state, force) {
   try { setItem('dw_autobk', day); await runAutoBackup(db, queue, clock, state.raw, force); }
   catch (e) { setItem('dw_autobk', ''); }
   finally { setTimeout(function () { abBusy = false; }, 20000); }
+}
+
+/* ---------- background service + limit notifications (Android APK only) ---------- */
+var native = getNative();
+var bgOpts = { ka: getItem('dw_ka') === '1', ln: getItem('dw_ln') !== '0' };
+
+// "limit nearly used up / used up" phone notifications, once per wallet+limit per day (or month).
+// The first run only records what is already true, so turning this on never fires a burst.
+function maybeLimitNotify(state, C) {
+  if (!native || !bgOpts.ln || state.mode !== 'cloud' || !writable(state)) return;
+  var fresh = ['ledger', 'wallets', 'settings', 'closes'].every(function (c) { return state.meta[c] && !state.meta[c].fc; });
+  if (!fresh) return;
+  var dk = dayKey(Date.now()), raw = getItem('dw_lnsent'), first = raw === null, sent = {};
+  try { sent = pruneSent(raw ? JSON.parse(raw) : {}, dk); } catch (e) { sent = {}; }
+  var r = limitNotifications(state.wallets, C.W, state.settings, dk, sent);
+  var next = Object.assign({}, sent);
+  r.keys.forEach(function (k) { next[k] = 1; });
+  setItem('dw_lnsent', JSON.stringify(next));
+  if (first) return;
+  r.notes.forEach(function (n) {
+    Promise.resolve(native.notify({ id: noteId(n.id), title: n.title, body: n.body })).catch(function () { /* no permission: the banner in the app still shows it */ });
+  });
+}
+
+async function refreshBg() {
+  var card = $('#bgCard');
+  if (!native) { card.hidden = true; return; }
+  card.hidden = false;
+  $('#kaOn').checked = bgOpts.ka; $('#lnOn').checked = bgOpts.ln;
+  var st = null;
+  try { st = await native.status(); } catch (e) { /* old plugin */ }
+  var msgs = [];
+  var up = $('#smsUp');
+  if (st && st.lastUpload !== undefined) {
+    up.hidden = false;
+    var line;
+    if (!st.smsOk) line = 'رفع الرسايل التلقائي: مقفول. دوس "اسمح باستقبال الرسايل".';
+    else if (!st.hasAuth) line = 'رفع الرسايل التلقائي: افتح التطبيق وانت داخل بحسابك مرة.';
+    else if (st.uploadErr === 'login-expired') line = 'رفع الرسايل وقف: الحساب اتغيّر. اعمل خروج وادخل تاني.';
+    else if (st.lastUpload) line = 'آخر رفع للرسايل: ' + new Date(st.lastUpload).toLocaleString('en-GB', { timeZone: 'Africa/Cairo', hour12: false }) + (st.uploadErr ? ' (آخر محاولة فشلت: ' + st.uploadErr + ')' : '');
+    else line = 'رفع الرسايل التلقائي: لسه ما رفعش حاجة' + (st.uploadErr ? ' (' + st.uploadErr + ')' : '') + '.';
+    up.textContent = line;
+    $('#smsPerm').hidden = !!st.smsOk;
+    $('#smsNow').hidden = !(st.smsOk && st.hasAuth);
+  }
+  if (st && !st.notif) msgs.push('الإشعارات مقفولة للتطبيق. دوس "اسمح بالإشعارات".');
+  if (st && bgOpts.ka && !st.battery) msgs.push('عشان يزامن وهو مقفول، دوس "فك قيود البطارية" واختار السماح.');
+  if (st && !msgs.length) msgs.push('تمام، كله شغّال.');
+  $('#bgInfo').textContent = msgs.join(' ');
+  $('#bgNotif').hidden = !st || st.notif;
+  $('#bgBat').hidden = !st || st.battery;
+}
+
+async function applyBg(ask) {
+  if (!native) return;
+  try {
+    if (ask && (bgOpts.ka || bgOpts.ln)) await native.requestNotifPermission();
+    if (ask && native.requestSmsPermissions) await native.requestSmsPermissions();
+    await native.setKeepAlive({ on: bgOpts.ka });
+  } catch (e) { /* ignore */ }
+  refreshBg();
 }
 
 // keep this phone listed in settings → المزامنة والموبايلات (cloud mode only, once synced)
@@ -252,11 +316,34 @@ document.addEventListener('change', function (e) {
   var el = /** @type {HTMLInputElement} */ (e.target);
   if (el && el.dataset && el.dataset.permset) setPermAction(store, getCtx(), el);
 });
+$('#kaOn').addEventListener('change', function (e) { bgOpts.ka = /** @type {HTMLInputElement} */ (e.target).checked; setItem('dw_ka', bgOpts.ka ? '1' : '0'); applyBg(false); });
+$('#lnOn').addEventListener('change', function (e) {
+  bgOpts.ln = /** @type {HTMLInputElement} */ (e.target).checked; setItem('dw_ln', bgOpts.ln ? '1' : '0');
+  removeItem('dw_lnsent'); // the next check only records today's state, so switching on never fires a burst
+  applyBg(bgOpts.ln);
+});
+$('#bgNotif').addEventListener('click', async function () { try { await native.requestNotifPermission(); } catch (e) { /* ignore */ } refreshBg(); });
+$('#bgBat').addEventListener('click', async function () { try { await native.requestBatteryExemption(); } catch (e) { /* ignore */ } setTimeout(refreshBg, 1500); });
 $('#bkFile').addEventListener('change', function (e) { bkFileChangeAction(store, e.target); });
 
 setInterval(function () { if (!document.hidden) { store.notify(); scanSmsAction(false); if (anyPending(store.getState().meta)) nudge(); } }, 60000);
 document.addEventListener('visibilitychange', function () { if (!document.hidden) { store.notify(); scanSmsAction(false); nudge(); } });
 setTimeout(function () { scanSmsAction(false); }, 4000);
+
+/* ---------- background SMS upload: give the native side this phone's login (APK only) ---------- */
+// The native uploader signs in on its own with the refresh token, so SMS reach the account while the app is closed.
+function handOverAuth(u) {
+  if (!native) return;
+  try {
+    if (!u) { if (native.clearSyncAuth) native.clearSyncAuth(); return; }
+    var cfg = window.FIREBASE_CONFIG || {};
+    if (!native.setSyncAuth || !u.refreshToken) return;
+    Promise.resolve(native.setSyncAuth({ apiKey: cfg.apiKey, projectId: cfg.projectId, uid: u.uid, deviceId: deviceId, refreshToken: u.refreshToken }))
+      .then(refreshBg).catch(function () { /* old plugin */ });
+  } catch (e) { /* ignore */ }
+}
+$('#smsPerm').addEventListener('click', async function () { try { await native.requestSmsPermissions(); } catch (e) { /* ignore */ } refreshBg(); });
+$('#smsNow').addEventListener('click', async function () { try { await native.uploadNow(); toast('جاري الرفع…'); } catch (e) { /* ignore */ } setTimeout(refreshBg, 6000); });
 
 /* ---------- cloud bootstrap ---------- */
 function initCloud() {
@@ -264,6 +351,7 @@ function initCloud() {
   nudge = makeNetworkNudger(fs);
   authPort = makeFirebaseAuth();
   authPort.onChange(function (u) {
+    handOverAuth(u);
     if (u) {
       var cur = store.getState().user;
       if (cur && cur.uid === u.uid) return;
@@ -291,6 +379,9 @@ initTheme();
 (async function () {
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
   registerServiceWorker();
+  applyBg(!getItem('dw_bgasked'));
+  setItem('dw_bgasked', '1');
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refreshBg(); });
   registerInstallPrompt(
     function (promptEvent) { store.patchUI({ inst: promptEvent }); $('#installCard').hidden = false; },
     function () { $('#installCard').hidden = true; },
