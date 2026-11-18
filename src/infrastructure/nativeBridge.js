@@ -7,6 +7,10 @@
  * @property {boolean} notif   notifications allowed
  * @property {boolean} battery app is exempt from battery optimisation
  * @property {boolean} keepalive background service switched on
+ * @property {boolean} [smsOk]      SMS read/receive permissions granted
+ * @property {boolean} [hasAuth]    the account login was handed over for background upload
+ * @property {number} [lastUpload]  ms time of the last successful SMS upload (0 = never)
+ * @property {string} [uploadErr]   short reason of the last failed upload
  */
 /**
  * @typedef {object} NativePort
@@ -14,6 +18,10 @@
  * @property {(o: {on: boolean}) => Promise<NativeStatus>} setKeepAlive
  * @property {() => Promise<NativeStatus>} requestNotifPermission
  * @property {() => Promise<NativeStatus>} requestBatteryExemption
+ * @property {(o: {apiKey: string, projectId: string, uid: string, deviceId: string, refreshToken: string}) => Promise<NativeStatus>} [setSyncAuth]
+ * @property {() => Promise<NativeStatus>} [clearSyncAuth]
+ * @property {() => Promise<NativeStatus>} [uploadNow]
+ * @property {() => Promise<NativeStatus>} [requestSmsPermissions]
  * @property {(o: {id: number, title: string, body: string}) => Promise<void>} notify
  */
 

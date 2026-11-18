@@ -27,7 +27,11 @@ import com.getcapacitor.annotation.PermissionCallback;
 /** Background keep-alive + limit notifications for the web app (JS name: "Daftar"). */
 @CapacitorPlugin(
     name = "Daftar",
-    permissions = { @Permission(strings = { Manifest.permission.POST_NOTIFICATIONS }, alias = "notifications") }
+    permissions = {
+        @Permission(strings = { Manifest.permission.POST_NOTIFICATIONS }, alias = "notifications"),
+        @Permission(strings = { Manifest.permission.READ_SMS }, alias = "smsRead"),
+        @Permission(strings = { Manifest.permission.RECEIVE_SMS }, alias = "smsReceive")
+    }
 )
 public class DaftarPlugin extends Plugin {
     static final String PREFS = "daftar_native";
@@ -54,7 +58,12 @@ public class DaftarPlugin extends Plugin {
         JSObject r = new JSObject();
         r.put("notif", notificationsOk());
         r.put("battery", ignoringBattery());
-        r.put("keepalive", prefs().getBoolean("keepalive", true));
+        r.put("keepalive", prefs().getBoolean("keepalive", false));
+        r.put("smsOk", getPermissionState("smsRead") == PermissionState.GRANTED && getPermissionState("smsReceive") == PermissionState.GRANTED);
+        SharedPreferences p = prefs();
+        r.put("hasAuth", !p.getString("refresh", "").isEmpty() && !p.getString("uid", "").isEmpty());
+        r.put("lastUpload", p.getLong("upload_ts", 0));
+        r.put("uploadErr", p.getString("upload_err", ""));
         return r;
     }
 
@@ -69,6 +78,49 @@ public class DaftarPlugin extends Plugin {
         prefs().edit().putBoolean("keepalive", on).apply();
         if (on) KeepAliveService.start(getContext());
         else KeepAliveService.stop(getContext());
+        call.resolve(statusObject());
+    }
+
+    /** The web app hands over what the background upload needs to sign in (kept private on this phone). */
+    @PluginMethod
+    public void setSyncAuth(PluginCall call) {
+        prefs().edit()
+            .putString("api_key", call.getString("apiKey", ""))
+            .putString("project", call.getString("projectId", ""))
+            .putString("uid", call.getString("uid", ""))
+            .putString("device", call.getString("deviceId", ""))
+            .putString("refresh", call.getString("refreshToken", ""))
+            .remove("id_token").remove("id_exp").putBoolean("auth_bad", false)
+            .apply();
+        UploadJobService.schedulePeriodic(getContext());
+        UploadJobService.scheduleSoon(getContext(), 3000);
+        call.resolve(statusObject());
+    }
+
+    @PluginMethod
+    public void clearSyncAuth(PluginCall call) {
+        prefs().edit().remove("refresh").remove("uid").remove("id_token").remove("id_exp").remove("upload_sig").apply();
+        call.resolve(statusObject());
+    }
+
+    @PluginMethod
+    public void uploadNow(PluginCall call) {
+        UploadJobService.scheduleSoon(getContext(), 500);
+        call.resolve(statusObject());
+    }
+
+    @PluginMethod
+    public void requestSmsPermissions(PluginCall call) {
+        if (getPermissionState("smsRead") != PermissionState.GRANTED || getPermissionState("smsReceive") != PermissionState.GRANTED) {
+            requestPermissionForAliases(new String[] { "smsRead", "smsReceive" }, call, "smsPermResult");
+        } else {
+            call.resolve(statusObject());
+        }
+    }
+
+    @PermissionCallback
+    private void smsPermResult(PluginCall call) {
+        UploadJobService.scheduleSoon(getContext(), 1000);
         call.resolve(statusObject());
     }
 

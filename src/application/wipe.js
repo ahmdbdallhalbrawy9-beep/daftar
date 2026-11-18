@@ -8,6 +8,9 @@
 import { checkWipePassword } from './settingsUseCases.js';
 import { openCustomers } from '../domain/customers.js';
 
+/** settings doc behind an inbox key: background-uploaded raw SMS live in `rawsms_<dev>`, the phone's own scan in `inbox_<dev>`. */
+function docOfInbox(id) { return id.indexOf('~raw~') === 0 ? 'rawsms_' + id.slice(5) : 'inbox_' + id; }
+
 /**
  * Deletes every document in every collection (password-gated).
  * @param {import('./ports.js').DbPort} db
@@ -28,7 +31,7 @@ export async function wipeAllData(db, queue, sha, settings, pw, state) {
     lids.forEach(function (id) { p = p.then(function () { return db.collection('ledger').doc(id).delete(); }); });
     cids.forEach(function (id) { p = p.then(function () { return db.collection('closes').doc(id).delete(); }); });
     wids.forEach(function (id) { p = p.then(function () { return db.collection('wallets').doc(id).delete(); }); });
-    iids.forEach(function (id) { p = p.then(function () { return db.collection('settings').doc('inbox_' + id).delete(); }); });
+    iids.forEach(function (id) { p = p.then(function () { return db.collection('settings').doc(docOfInbox(id)).delete(); }); });
     return p.then(function () { return db.collection('settings').doc('main').delete(); });
   });
   return { ok: true };
@@ -59,7 +62,7 @@ export async function wipeTransactions(db, queue, clock, computeResult, wallets,
     p = p.then(function () { return db.collection('settings').doc('main').set(Object.assign({}, settings, { baseCash: C.cash, baseTs: ts, cb: cb })); });
     lids.forEach(function (id) { p = p.then(function () { return db.collection('ledger').doc(id).delete(); }); });
     cids.forEach(function (id) { p = p.then(function () { return db.collection('closes').doc(id).delete(); }); });
-    iids.forEach(function (id) { p = p.then(function () { return db.collection('settings').doc('inbox_' + id).delete(); }); });
+    iids.forEach(function (id) { p = p.then(function () { return db.collection('settings').doc(docOfInbox(id)).delete(); }); });
     return p;
   });
   return { ok: true };

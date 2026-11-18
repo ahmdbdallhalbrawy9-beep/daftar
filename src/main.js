@@ -119,7 +119,7 @@ async function maybeAutoBackup(state, force) {
 
 /* ---------- background service + limit notifications (Android APK only) ---------- */
 var native = getNative();
-var bgOpts = { ka: getItem('dw_ka') !== '0', ln: getItem('dw_ln') !== '0' };
+var bgOpts = { ka: getItem('dw_ka') === '1', ln: getItem('dw_ln') !== '0' };
 
 // "limit nearly used up / used up" phone notifications, once per wallet+limit per day (or month).
 // The first run only records what is already true, so turning this on never fires a burst.
@@ -147,6 +147,19 @@ async function refreshBg() {
   var st = null;
   try { st = await native.status(); } catch (e) { /* old plugin */ }
   var msgs = [];
+  var up = $('#smsUp');
+  if (st && st.lastUpload !== undefined) {
+    up.hidden = false;
+    var line;
+    if (!st.smsOk) line = 'رفع الرسايل التلقائي: مقفول. دوس "اسمح باستقبال الرسايل".';
+    else if (!st.hasAuth) line = 'رفع الرسايل التلقائي: افتح التطبيق وانت داخل بحسابك مرة.';
+    else if (st.uploadErr === 'login-expired') line = 'رفع الرسايل وقف: الحساب اتغيّر. اعمل خروج وادخل تاني.';
+    else if (st.lastUpload) line = 'آخر رفع للرسايل: ' + new Date(st.lastUpload).toLocaleString('en-GB', { timeZone: 'Africa/Cairo', hour12: false }) + (st.uploadErr ? ' (آخر محاولة فشلت: ' + st.uploadErr + ')' : '');
+    else line = 'رفع الرسايل التلقائي: لسه ما رفعش حاجة' + (st.uploadErr ? ' (' + st.uploadErr + ')' : '') + '.';
+    up.textContent = line;
+    $('#smsPerm').hidden = !!st.smsOk;
+    $('#smsNow').hidden = !(st.smsOk && st.hasAuth);
+  }
   if (st && !st.notif) msgs.push('الإشعارات مقفولة للتطبيق. دوس "اسمح بالإشعارات".');
   if (st && bgOpts.ka && !st.battery) msgs.push('عشان يزامن وهو مقفول، دوس "فك قيود البطارية" واختار السماح.');
   if (st && !msgs.length) msgs.push('تمام، كله شغّال.');
@@ -159,6 +172,7 @@ async function applyBg(ask) {
   if (!native) return;
   try {
     if (ask && (bgOpts.ka || bgOpts.ln)) await native.requestNotifPermission();
+    if (ask && native.requestSmsPermissions) await native.requestSmsPermissions();
     await native.setKeepAlive({ on: bgOpts.ka });
   } catch (e) { /* ignore */ }
   refreshBg();
@@ -316,12 +330,28 @@ setInterval(function () { if (!document.hidden) { store.notify(); scanSmsAction(
 document.addEventListener('visibilitychange', function () { if (!document.hidden) { store.notify(); scanSmsAction(false); nudge(); } });
 setTimeout(function () { scanSmsAction(false); }, 4000);
 
+/* ---------- background SMS upload: give the native side this phone's login (APK only) ---------- */
+// The native uploader signs in on its own with the refresh token, so SMS reach the account while the app is closed.
+function handOverAuth(u) {
+  if (!native) return;
+  try {
+    if (!u) { if (native.clearSyncAuth) native.clearSyncAuth(); return; }
+    var cfg = window.FIREBASE_CONFIG || {};
+    if (!native.setSyncAuth || !u.refreshToken) return;
+    Promise.resolve(native.setSyncAuth({ apiKey: cfg.apiKey, projectId: cfg.projectId, uid: u.uid, deviceId: deviceId, refreshToken: u.refreshToken }))
+      .then(refreshBg).catch(function () { /* old plugin */ });
+  } catch (e) { /* ignore */ }
+}
+$('#smsPerm').addEventListener('click', async function () { try { await native.requestSmsPermissions(); } catch (e) { /* ignore */ } refreshBg(); });
+$('#smsNow').addEventListener('click', async function () { try { await native.uploadNow(); toast('جاري الرفع…'); } catch (e) { /* ignore */ } setTimeout(refreshBg, 6000); });
+
 /* ---------- cloud bootstrap ---------- */
 function initCloud() {
   var fs = initFirebase(window.FIREBASE_CONFIG);
   nudge = makeNetworkNudger(fs);
   authPort = makeFirebaseAuth();
   authPort.onChange(function (u) {
+    handOverAuth(u);
     if (u) {
       var cur = store.getState().user;
       if (cur && cur.uid === u.uid) return;
