@@ -11,6 +11,11 @@
  * @property {boolean} [hasAuth]    the account login was handed over for background upload
  * @property {number} [lastUpload]  ms time of the last successful SMS upload (0 = never)
  * @property {string} [uploadErr]   short reason of the last failed upload
+ * @property {number} [lastRecv]    ms time the SMS receiver last fired (0 = never)
+ * @property {number} [lastRun]     ms time the uploader last ran
+ * @property {string} [maker]       lowercase phone brand (Build.MANUFACTURER)
+ * @property {number} [queued]      messages saved on the phone and not uploaded yet
+ * @property {number} [waitInbox]   airtime messages waiting for their row in the phone's SMS inbox
  */
 /**
  * @typedef {object} NativePort

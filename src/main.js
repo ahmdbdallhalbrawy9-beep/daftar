@@ -41,6 +41,7 @@ import { describeDevice } from './infrastructure/deviceInfo.js';
 import { getItem, setItem, removeItem } from './infrastructure/storage.js';
 import { getNative } from './infrastructure/nativeBridge.js';
 import { limitNotifications, pruneSent, noteId } from './domain/limitNotify.js';
+import { brandTip, smsQueueNote } from './domain/bgHints.js';
 import { getDeviceId } from './infrastructure/deviceId.js';
 import { sha } from './infrastructure/crypto.js';
 import { createWriteQueue } from './infrastructure/writeQueue.js';
@@ -119,7 +120,9 @@ async function maybeAutoBackup(state, force) {
 
 /* ---------- background service + limit notifications (Android APK only) ---------- */
 var native = getNative();
-var bgOpts = { ka: getItem('dw_ka') === '1', ln: getItem('dw_ln') !== '0' };
+// keep-alive is ON unless this phone's owner switched it off (dw_ka === '0'): Oppo/Realme/Infinix stop a closed app and
+// never deliver the SMS broadcast to it, so the quiet foreground service is what makes automatic SMS upload work.
+var bgOpts = { ka: getItem('dw_ka') !== '0', ln: getItem('dw_ln') !== '0' };
 
 // "limit nearly used up / used up" phone notifications, once per wallet+limit per day (or month).
 // The first run only records what is already true, so turning this on never fires a burst.
@@ -156,12 +159,16 @@ async function refreshBg() {
     else if (st.uploadErr === 'login-expired') line = 'رفع الرسايل وقف: الحساب اتغيّر. اعمل خروج وادخل تاني.';
     else if (st.lastUpload) line = 'آخر رفع للرسايل: ' + new Date(st.lastUpload).toLocaleString('en-GB', { timeZone: 'Africa/Cairo', hour12: false }) + (st.uploadErr ? ' (آخر محاولة فشلت: ' + st.uploadErr + ')' : '');
     else line = 'رفع الرسايل التلقائي: لسه ما رفعش حاجة' + (st.uploadErr ? ' (' + st.uploadErr + ')' : '') + '.';
-    up.textContent = line;
+    var qn = smsQueueNote(st, function (ms) { return new Date(ms).toLocaleString('en-GB', { timeZone: 'Africa/Cairo', hour12: false }); });
+    up.textContent = qn ? line + ' ' + qn : line;
     $('#smsPerm').hidden = !!st.smsOk;
     $('#smsNow').hidden = !(st.smsOk && st.hasAuth);
   }
   if (st && !st.notif) msgs.push('الإشعارات مقفولة للتطبيق. دوس "اسمح بالإشعارات".');
-  if (st && bgOpts.ka && !st.battery) msgs.push('عشان يزامن وهو مقفول، دوس "فك قيود البطارية" واختار السماح.');
+  // the SMS upload needs this too (not only the keep-alive service): without it Android holds the upload back
+  if (st && !st.battery) msgs.push('عشان رفع الرسايل والمزامنة يشتغلوا وهو مقفول، دوس "فك قيود البطارية" واختار السماح.');
+  var tip = st ? brandTip(st.maker) : '';
+  if (tip) msgs.push(tip);
   if (st && !msgs.length) msgs.push('تمام، كله شغّال.');
   $('#bgInfo').textContent = msgs.join(' ');
   $('#bgNotif').hidden = !st || st.notif;
