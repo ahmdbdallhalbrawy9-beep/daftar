@@ -120,7 +120,9 @@ async function maybeAutoBackup(state, force) {
 
 /* ---------- background service + limit notifications (Android APK only) ---------- */
 var native = getNative();
-var bgOpts = { ka: getItem('dw_ka') === '1', ln: getItem('dw_ln') !== '0' };
+// keep-alive is ON unless this phone's owner switched it off (dw_ka === '0'): Oppo/Realme/Infinix stop a closed app and
+// never deliver the SMS broadcast to it, so the quiet foreground service is what makes automatic SMS upload work.
+var bgOpts = { ka: getItem('dw_ka') !== '0', ln: getItem('dw_ln') !== '0' };
 
 // "limit nearly used up / used up" phone notifications, once per wallet+limit per day (or month).
 // The first run only records what is already true, so turning this on never fires a burst.
