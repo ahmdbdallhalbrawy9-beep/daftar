@@ -64,6 +64,20 @@ public class DaftarPlugin extends Plugin {
         r.put("hasAuth", !p.getString("refresh", "").isEmpty() && !p.getString("uid", "").isEmpty());
         r.put("lastUpload", p.getLong("upload_ts", 0));
         r.put("uploadErr", p.getString("upload_err", ""));
+        // diagnostics: when the receiver last fired / the uploader last ran, what is still queued, which phone brand
+        r.put("lastRecv", p.getLong("recv_ts", 0));
+        r.put("lastRun", p.getLong("run_ts", 0));
+        r.put("maker", Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.toLowerCase());
+        int unsent = 0, waiting = 0;
+        try {
+            int[] n = SmsOutbox.get(getContext()).counts(p.getString("uid", ""));
+            unsent = n[0];
+            waiting = n[1];
+        } catch (Exception e) {
+            // outbox unreadable: report zero rather than failing the whole status
+        }
+        r.put("queued", unsent);
+        r.put("waitInbox", waiting);
         return r;
     }
 
